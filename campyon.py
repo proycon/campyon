@@ -6,7 +6,7 @@ import codecs
 import getopt
 import os
 import math 
-
+import numpy
 import matplotlib
 matplotlib.use('GTKAgg')
 import matplotlib.pyplot
@@ -110,7 +110,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot"])
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle"])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -142,6 +142,7 @@ class Campyon(object):
         self.plotylog = self._parsekwargs('plotylog',False,kwargs)
         self.plotconf = self._parsekwargs('plotconf',['r.-','g.-','b.-','y.-','m.-','c.-'],kwargs)
         self.plotfile = self._parsekwargs('plotfile',"",kwargs)
+        self.plottitle = self._parsekwargs('plottitle',"",kwargs)
         
         self.fieldcount = 0
         self.header =  {}
@@ -469,33 +470,56 @@ class Campyon(object):
             
         print >>sys.stderr,"Read " + str(self.rowcount_in) + " lines, outputted " + str(self.rowcount_out)
         
-    def plot(self):        
+    def plot(self, show=True):        
+        barcolors = 'rgbymc'
+        
         #fig = matplotlib.pyplot.figure()
         matplotlib.pyplot.clf()
         if self.plotgrid:
             matplotlib.pyplot.grid(True)
         else:
             matplotlib.pyplot.grid(False)            
-        if self.plotylog:            
-            fig.set_yscale('log')
+
+        if self.plottitle:
+            matplotlib.pyplot.title(self.plottitle)
+            
         if all([ isinstance(x,float) or isinstance(x,int) for x in self.xs ]):
+            if self.plotylog:            
+                matplotlib.pyplot.set_yscale('log')            
+            
+            if self.x in self.header:            
+                matplotlib.pyplot.xlabel(self.header[self.x])            
+            if len(self.y) == 1 and self.y[0] in self.header:            
+                matplotlib.pyplot.ylabel(self.header[self.y[0]])            
+            
             if self.plotxlog:
-                fig.set_xscale('log')
+                matplotlib.pyplot.set_xscale('log')
 
             l = []
             for i, field in enumerate(self.y):
                 l.append(self.xs)
                 l.append(self.ys[field])
                 l.append(self.plotconf[i])
+                
+                            
             matplotlib.pyplot.plot(*l)
         else:            
-           #TODO: implement bar chart
-           raise NotImplementedError
+           #do a horizontal barplot    
+           
+           if self.plotylog:            
+                matplotlib.pyplot.set_xscale('log')
+            
+           hbarheight = 0.2
+           locations = numpy.arange(len(self.xs))
+           for i, field in enumerate(self.y):
+                matplotlib.pyplot.barh(locations ,  self.ys[field], align='center', color=barcolors[i])
+           matplotlib.pyplot.yticks(locations+hbarheight/2., self.xs)
+           
             
         if self.plotfile:
             print >>sys.stderr, "Saving plot in " + self.plotfile
             matplotlib.pyplot.savefig(self.plotfile, dpi=None, facecolor='w', edgecolor='w', orientation='portrait', papertype=None, format='png', transparent=False, bbox_inches=None, pad_inches=0.3)
-        else:
+        elif show:
             print >>sys.stderr, "Showing plot"
             matplotlib.pyplot.show()
         
