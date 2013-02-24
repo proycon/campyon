@@ -508,10 +508,16 @@ class Campyon(object):
            
            if self.plotylog:            
                 matplotlib.pyplot.set_xscale('log')
+           
+           if self.x in self.header:            
+                matplotlib.pyplot.ylabel(self.header[self.x])            
+           if len(self.y) == 1 and self.y[0] in self.header:            
+                matplotlib.pyplot.xlabel(self.header[self.y[0]])   
             
+             
            hbarheight = 0.2
            locations = numpy.arange(len(self.xs))
-           for i, field in enumerate(self.y):
+           for i, field in enumerate(self.y): #TODO support multiple graphs
                 matplotlib.pyplot.barh(locations ,  self.ys[field], align='center', color=barcolors[i])
            matplotlib.pyplot.yticks(locations+hbarheight/2., self.xs)
            
