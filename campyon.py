@@ -258,12 +258,12 @@ class Campyon(object):
         if self.outputfile:
             f_out = codecs.open(self.outputfile, 'w',self.encoding)
             
-        for line, fields in self:
+        for line, fields, linenum in self:
             if self.outputfile:                                          
-                if self.numberlines: f_out.write("@" + str(self.rowcount_in) + self.delimiter)
+                if self.numberlines: f_out.write("@" + str(linenum) + self.delimiter)
                 f_out.write(line + "\n")
             else:
-                if self.numberlines: print "@" + str(self.rowcount_in) + self.delimiter,
+                if self.numberlines: print "@" + str(linenum) + self.delimiter,
                 print line.encode(self.encoding)
               
         if self.outputfile:
@@ -307,7 +307,7 @@ class Campyon(object):
             if not line.strip() or (self.commentchar and line[:len(self.commentchar)] == self.commentchar):
                 self.rowcount_out += 1
                 if not self.inmemory:
-                    yield line.strip(), []
+                    yield line.strip(), [], self.rowcount_out
                 continue
             
             
@@ -321,6 +321,10 @@ class Campyon(object):
             
             if self.DOHEADER and not self.header:
                 self.header = dict([ (x+1,y) for x,y in enumerate(fields) ])
+                self.rowcount_out += 1
+                if not self.inmemory:
+                    yield line.strip(), fields, self.rowcount_out
+                continue
             
             if self.select:
                 currentselect = self.select
@@ -376,12 +380,13 @@ class Campyon(object):
             #k = [ x - 1 if x >= 0 else len(fields) + x for x in keep ]
             #d = [ x - 1 if x >= 0 else len(fields) + x for x in delete ]
             for i, field in enumerate(fields):
+                fieldnum = i+1
                 action = default 
-                if i in self.keep:
+                if fieldnum in self.keep:
                     action = 'keep'
-                elif i in self.delete:
+                elif fieldnum in self.delete:
                     action = 'delete'
-                if i in self.highlight:
+                if fieldnum in self.highlight:
                     field = bold(red(field))                
                 if self.numberfields:
                     field = str(i) + '=' + field
@@ -397,37 +402,37 @@ class Campyon(object):
                         if isfloat:
                             field = f
 
-                if self.x == i+1:
+                if self.x == fieldnum:
                     self.xs.append(field)
                 
-                if i+1 in self.y:
+                if fieldnum in self.y:
                     if not isinstance(field, float) and not isinstance(field,int):
                         raise CampyonError("Can not plot non-numeric values: " + field) 
                         
-                    if not i+1 in self.ys:
-                        self.ys[i+1] = []
-                    self.ys[i+1].append(field)
+                    if not fieldnum in self.ys:
+                        self.ys[fieldnum] = []
+                    self.ys[fieldnum].append(field)
 
                 if action == 'keep':
                     newfields.append(field)
                     
             s = self.delimiter.join([ str(x) for x in newfields ])            
             if self.inmemory:
-                self.memory.append(newfields)
+                self.memory.append( (newfields, self.rowcount_out) )
             else:                
-                yield s, newfields
+                yield s, newfields, self.rowcount_out
 
         if self.inmemory:
             if self.sort:
-               self.memory = sorted(self.memory, key=lambda x: tuple([ x[i] for i in self.sort ]), reverse=self.sortreverse)
+               self.memory = sorted(self.memory, key=lambda x: tuple([ x[0][i-1] for i in self.sort ]), reverse=self.sortreverse)
                               
             if self.header:    
                 s = self.delimiter.join( self.headerfields()  )
-                yield s, self.headerfields()
+                yield s, self.headerfields(), 0
     
-            for fields in self.memory:
-                s = self.delimiter.join(fields)
-                yield s, fields
+            for fields, linenum in self.memory:
+                s = self.delimiter.join([ str(x) for x in fields])
+                yield s, fields, linenum
             
         print >>sys.stderr,"Read " + str(self.rowcount_in) + " lines, outputted " + str(self.rowcount_out)
         
