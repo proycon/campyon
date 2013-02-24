@@ -135,7 +135,7 @@ class Campyon(object):
         self.plotfile = self._parsekwargs('plotfile',"",kwargs)
         
         self.fieldcount = 0
-        self.header =  []
+        self.header =  {}
         self.sortreverse = False
         self.inmemory = False
         self.xs = []
@@ -218,9 +218,12 @@ class Campyon(object):
         f = codecs.open(self.filename,'r',self.encoding)
         for line in f:
             if line.strip() and (not self.commentchar or line[:len(self.commentchar)] != self.commentchar):                    
-                self.fieldcount = len(line.strip().split(self.delimiter))
+                fields = line.strip().split(self.delimiter)
+                self.fieldcount = len(fields)
                 print >>sys.stderr,"Number of fields: ", self.fieldcount
-                break
+                if self.DOHEADER:
+                    self.header = dict([ (x+1,y) for x,y in enumerate(fields) ])
+                break            
         f.close()
         
         
@@ -298,6 +301,8 @@ class Campyon(object):
             default = 'delete'
         else:        
             default = 'keep'        
+            
+        headerfound = False
                            
         f = codecs.open(self.filename,'r',self.encoding)
         for line in f:
@@ -318,13 +323,14 @@ class Campyon(object):
             if len(fields) != self.fieldcount:
                 raise CampyonError("Number of columns in line " + str(self.rowcount_in) + " deviates, expected " + str(self.fieldcount) + ", got " + str(len(fields))) 
                 
-            
-            if self.DOHEADER and not self.header:
-                self.header = dict([ (x+1,y) for x,y in enumerate(fields) ])
+            if not headerfound:
+                headerfound = True
                 self.rowcount_out += 1
                 if not self.inmemory:
                     yield line.strip(), fields, self.rowcount_out
                 continue
+    
+        
             
             if self.select:
                 currentselect = self.select
