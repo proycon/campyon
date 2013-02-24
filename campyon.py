@@ -117,6 +117,7 @@ class Campyon(object):
         self.outputfile = self._parsekwargs('outputfile',None,kwargs)
         self.DOSTATS = self._parsekwargs('DOSTATS',False,kwargs)
         self.hist = self._parsekwargs('hist',[],kwargs)
+        self.sort = self._parsekwargs('sort',[],kwargs)
         self.select = self._parsekwargs('select',None,kwargs)
         self.commentchar = self._parsekwargs('commentchar',None,kwargs)
         self.numberfields = self._parsekwargs('numberfields',False,kwargs)
@@ -154,9 +155,9 @@ class Campyon(object):
             elif o == "-f":	
                 self.filename = a              
             elif o == "-k":	
-                self.keepsettings = a
+                keepsettings = a
             elif o == "-d":	
-                self.deletesettings = a      
+                deletesettings = a      
             elif o == '-D':
                 self.delimiter = a
             elif o == '-o':    
@@ -169,7 +170,7 @@ class Campyon(object):
             elif o == '-S':
                 self.DOSTATS = True
             elif o == '-H':
-                self.histsettings = a 
+                histsettings = a 
             elif o == '-T':
                 self.delimiter = "\t"
             elif o == '-C':
@@ -179,7 +180,7 @@ class Campyon(object):
             elif o == '-N':
                 self.numberfields = True        
             elif o == '-M':    
-                self.highlightsettings = a
+                highlightsettings = a
             elif o == '-1':
                 self.DOHEADER = True
             elif o == '-A':
@@ -243,6 +244,7 @@ class Campyon(object):
         self.sumdata = {}
         self.nostats = set()
         self.freq = {}
+        
         
         if self.keep:
             print >>sys.stderr, "Fields to keep: ",  " ".join([ str(x) for x in self.keep])
