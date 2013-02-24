@@ -101,7 +101,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:",["bar","plotgrid","plotxlog","plotylog","plotconf="])
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile="])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -127,10 +127,11 @@ class Campyon(object):
         self.y = self._parsekwargs('y',[],kwargs)
 
         
-        self.plotgrid = False
-        self.plotxlog = False
-        self.plotylog = False
-        self.plotconf = ['r','g','b','y','m','c','b']
+        self.plotgrid = self._parsekwargs('plotgrid',False,kwargs)
+        self.plotxlog = self._parsekwargs('plotxlog',False,kwargs)
+        self.plotylog = self._parsekwargs('plotylog',False,kwargs)
+        self.plotconf = self._parsekwargs('plotconf',['r','g','b','y','m','c','b'],kwargs)
+        self.plotfile = self._parsekwargs('plotfile',"",kwargs)
         
         self.fieldcount = 0
         self.header =  []
@@ -197,7 +198,11 @@ class Campyon(object):
             elif o == '--plotylog':     
                 self.plotylog = True
             elif o == '--plotconf':     
-                self.plotconf = a.split(',') 
+                self.plotconf = a.split(',')
+            elif o == '--plotfile':     
+                self.plotfile = a
+            elif o == '-a':
+                raise NotImplementedError
             else:
                 raise Exception("invalid option: " + o)
                         
@@ -444,7 +449,7 @@ class Campyon(object):
             fig.plot(*l)
         else:            
            #TODO: implement bar chart
-           raise NotImplemented 
+           raise NotImplementedError
             
         if self.plotfile:
             fig.savefig(self.plotfile, dpi=None, facecolor='w', edgecolor='w', orientation='portrait', papertype=None, format='png', transparent=False, bbox_inches=None, pad_inches=0.3)
