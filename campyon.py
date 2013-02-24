@@ -76,6 +76,12 @@ class CampyonError(Exception):
     pass
 
 class Campyon(object):
+    def _parsekwargs(self, key, default, kwargs):
+        if key in kwargs:
+            return kwargs[key]
+        else:
+            return default
+    
     def __init__(self, *args, **kwargs):
         try:
 	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1")
@@ -85,27 +91,29 @@ class Campyon(object):
 	        usage()
 	        sys.exit(2)           
         
-        self.filename = ""
-        self.encoding = "utf-8"
+        self.filename = self._parsekwargs('filename',"",kwargs)
+        self.encoding = self._parsekwargs('encoding',"utf-8",kwargs)
+        self.delete = self._parsekwargs('delete',[],kwargs)
+        self.keep = self._parsekwargs('keep',[],kwargs)
+        self.delimiter = self._parsekwargs('delimiter'," ",kwargs)
+        self.overwriteinput = self._parsekwargs('overwriteinput',False,kwargs)
+        self.outputfile = self._parsekwargs('outputfile',None,kwargs)
+        self.DOSTATS = self._parsekwargs('DOSTATS',False,kwargs)
+        self.hist = self._parsekwargs('hist',[],kwargs)
+        self.select = self._parsekwargs('select',None,kwargs)
+        self.commentchar = self._parsekwargs('commentchar',None,kwargs)
+        self.numberfields = self._parsekwargs('numberfields',False,kwargs)
+        self.numberlines =  self._parsekwargs('numberlines',False,kwargs)
+        self.highlight =  self._parsekwargs('highlight',[],kwargs)
+        self.DOHEADER = self._parsekwargs('DOHEADER',False,kwargs)
+        
+        self.fieldcount = 0
+        self.header =  []
+        
         keepsettings = ""
         deletesettings = ""
         histsettings = ""
-        self.delete = []
-        self.keep = []
-        self.delimiter = " "
-        self.overwriteinput = False
-        self.outputfile = None
-        self.DOSTATS = False
-        self.hist = []
-        self.select = None
-        self.fieldcount = 0
-        self.commentchar = None
-        self.numberfields = False
-        self.numberlines = False
         highlightsettings = ""
-        self.highlight = []
-        self.DOHEADER = False
-        self.header = []
     
         for o, a in opts:
             if o == "-e":	
