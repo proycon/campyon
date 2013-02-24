@@ -29,7 +29,8 @@ def usage():
     print >>sys.stderr," -M [columns]     Mark/highlight columns"
     print >>sys.stderr," -1               First line is a header line, containing names of the columns"
     print >>sys.stderr," -p [columns]     Plot columns"
-
+    print >>sys.stderr," -x [column]      Plot as a function of the specified column"  
+   
         
 def bold(s):
     CSI="\x1B["
@@ -50,28 +51,6 @@ def calcentropy(d, base = 2):
       return entropy
 
 
-def parsecolumns(settings, fieldcount):
-    assert fieldcount > 0
-    print >>sys.stderr, "DEBUG=",fieldcount
-    l = []
-    for x in settings.split(','):
-        if ':' in x:
-            low,high = [ int(y) for y in x.split(':') ]                
-            if low < 0: low = fieldcount + low + 1
-            if high < 0: high = fieldcount + high + 1
-            for i in range(low, high + 1):
-                if i > fieldcount:  
-                    print >>sys.stderr, "ERROR: Specified column " + str(i) + " is out of range"
-                    sys.exit(4)
-                l.append(i)
-        else:
-            if int(x) < 0: x = fieldcount + int(x) + 1
-            if int(x) > fieldcount:  
-                print >>sys.stderr, "ERROR: Specified column " + str(x) + " is out of range"
-                sys.exit(4)
-            l.append(int(x))
-    return l
-
 class CampyonError(Exception):
     pass
 
@@ -82,9 +61,38 @@ class Campyon(object):
         else:
             return default
     
+    def parsecolumnindex(self, s):
+        if s[0] == '-' and s[1:].isdigit():
+            return self.fieldcount + int(s) + 1
+        elif s.isdigit():
+            return int(s)
+        else:
+            return self.indexbyname(s)
+        
+    def parsecolumns(self, settings):
+        assert self.fieldcount > 0
+        l = []
+        for x in settings.split(','):
+            if ':' in x:
+                low,high = [ y for y in x.split(':') ]
+                low = self.parsecolumnindex(low)
+                high = self.parsecolumnindex(high) 
+                for i in range(low, high + 1):
+                    if i > self.fieldcount:  
+                        print >>sys.stderr, "ERROR: Specified column " + str(i) + " is out of range"
+                        sys.exit(4)
+                    l.append(i)
+            else:
+                x = self.parsecolumnindex(x)
+                if x > self.fieldcount:  
+                    print >>sys.stderr, "ERROR: Specified column " + str(x) + " is out of range"
+                    sys.exit(4)
+                l.append(x)
+        return l    
+    
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1")
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:p:")
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -170,10 +178,10 @@ class Campyon(object):
         
         
         
-        if keepsettings: self.keep = parsecolumns(keepsettings, self.fieldcount)
-        if deletesettings: self.delete = parsecolumns(deletesettings, self.fieldcount)
-        if histsettings: self.hist = parsecolumns(histsettings, self.fieldcount)
-        if highlightsettings: self.highlight = parsecolumns(highlightsettings, self.fieldcount)
+        if keepsettings: self.keep = self.parsecolumns(keepsettings)
+        if deletesettings: self.delete = self.parsecolumns(deletesettings)
+        if histsettings: self.hist = self.parsecolumns(histsettings)
+        if highlightsettings: self.highlight = self.parsecolumns(highlightsettings)
            
         
 
@@ -255,7 +263,7 @@ class Campyon(object):
                 
             
             if self.DOHEADER and not self.header:
-                self.header = fields
+                self.header = dict([ (x+1,y) for x,y in enumerate(fields) ])
             
             if self.select:
                 currentselect = self.select
@@ -369,6 +377,12 @@ class Campyon(object):
         for word, count in sorted(self.freq[columnindex].items(), key=lambda x: x[1] * -1):
             yield word, count, count / s
     
+    def indexbyname(self, colname):
+        for key, i in self.header.items():
+            if key == colname:
+                return i
+        raise KeyError("Column " + colname + " not found")
+        
 if __name__ == "__main__":         
     campyon = Campyon(*sys.argv[1:])
     campyon()
