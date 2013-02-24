@@ -240,12 +240,8 @@ class Campyon(object):
                 print >>sys.stderr,"Number of fields: ", self.fieldcount
                 if self.DOHEADER:
                     self.header = dict([ (x+1,y) for x,y in enumerate(fields) ])
-                                    
-                    
-                    
                 break            
         f.close()
-        
         
         
         if keepsettings: self.keep = self.parsecolumns(keepsettings)
@@ -326,6 +322,7 @@ class Campyon(object):
                            
         f = codecs.open(self.filename,'r',self.encoding)
         for line in f:
+            isheader = False
             self.rowcount_in += 1
             
             
@@ -343,16 +340,13 @@ class Campyon(object):
             if len(fields) != self.fieldcount:
                 raise CampyonError("Number of columns in line " + str(self.rowcount_in) + " deviates, expected " + str(self.fieldcount) + ", got " + str(len(fields))) 
                 
-            if not headerfound:
+            if self.DOHEADER and not headerfound:
                 headerfound = True
-                self.rowcount_out += 1
-                if not self.inmemory:
-                    yield line.strip(), fields, self.rowcount_out
-                continue
+                isheader = True
     
         
             
-            if self.select:
+            if self.select and not isheader:
                 currentselect = self.select
                 for i in reversed(range(1,len(fields)+1)):
                     isdigit = True
@@ -370,7 +364,7 @@ class Campyon(object):
             self.rowcount_out += 1
             
 
-            if self.hist:
+            if self.hist and not isheader:
                 for fieldnum in self.hist:
                     if not fieldnum in self.freq:                
                         self.freq[fieldnum] = {}
@@ -378,7 +372,7 @@ class Campyon(object):
                         self.freq[fieldnum][fields[fieldnum]] = 0
                     self.freq[fieldnum][fields[fieldnum]] += 1
                 
-            if self.DOSTATS:                    
+            if self.DOSTATS and not isheader:                    
                 for i,field in enumerate(fields):
                     if not i in self.nostats: 
                         if '.' in field:
@@ -443,7 +437,7 @@ class Campyon(object):
                     newfields.append(field)
                     
             s = self.delimiter.join([ str(x) for x in newfields ])            
-            if self.inmemory:
+            if self.inmemory and not isheader:
                 self.memory.append( (newfields, self.rowcount_out) )
             else:                
                 yield s, newfields, self.rowcount_out
@@ -532,7 +526,7 @@ class Campyon(object):
             yield word, count, count / s
     
     def indexbyname(self, colname):
-        for key, i in self.header.items():
+        for i,key in self.header.items():
             if key == colname:
                 return i
         raise KeyError("Column " + colname + " not found")
