@@ -8,7 +8,7 @@ import os
 import math 
 
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('GTKAgg')
 import matplotlib.pyplot
 
 
@@ -23,7 +23,7 @@ def usage():
     print >>sys.stderr," -T               Set tab as delimiter"
     print >>sys.stderr," -o [outputfile]  Output to file instead of stdout"
     print >>sys.stderr," -i               Outputfile equals inputfile"
-    print >>sys.stderr," -s [expression]  Select rows, expression is may use variables #1...#n for the columns, and operators and,or,not,>,<,!=,== (python syntax)."
+    print >>sys.stderr," -s [expression]  Select rows, expression may use variables #1...#n for the columns, and operators and,or,not,>,<,!=,== (python syntax)."
     print >>sys.stderr," -S               Compute statistics"
     print >>sys.stderr," -H [columns]     Compute histogram on the specified columns"
     print >>sys.stderr," -C [char]        Ignore comments, line starting with the specified character. Example: -C #"
@@ -33,10 +33,13 @@ def usage():
     print >>sys.stderr," -1               First line is a header line, containing names of the columns"
     print >>sys.stderr," -y [columns]     Plot columns (use with -x)"
     print >>sys.stderr," -x [column]      Plot as a function of the specified column (use with -y)"  
-    print >>sys.stderr," -X [samplesizes] Draw one or more random samples (non overlapping, comma separated list of sample sizes)"
+    
     print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
     print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
-    print >>sys.stderr," -a [column]=[columname]=[expression]   Adds a new column after the specified column"  
+    print >>sys.stderr,"Options to be implemented still:"
+    print >>sys.stderr," -X [samplesizes] Draw one or more random samples (non overlapping, comma separated list of sample sizes)"
+    print >>sys.stderr," -a [column]=[columname]=[expression]   Adds a new column after the specified column"
+    print >>sys.stderr," -J [sourcekey]:[filename]:[targetkey]:[selecttargetcolumns]:[insertafter]   Joins another data set with this one, on a specified column"  
     print >>sys.stderr,"Column specification:"
     print >>sys.stderr," A comma separated list of column index numbers or column names (if -1 option is used). Column index numbers start with 1. Negative numbers may be used for end-aligned-indices, where -1 is the last column. Ranges may be specified using a colon, for instance: 3:6 equals 3,4,5,6. A selection like 3:-1 select the third up to the last column. A specification like ID,NAME selects the columns names as such."
     
@@ -422,10 +425,10 @@ class Campyon(object):
                         if isfloat:
                             field = f
 
-                if self.x == fieldnum:
+                if self.x == fieldnum and not isheader:
                     self.xs.append(field)
                 
-                if fieldnum in self.y:
+                if fieldnum in self.y and not isheader:
                     if not isinstance(field, float) and not isinstance(field,int):
                         raise CampyonError("Can not plot non-numeric values: " + field) 
                         
@@ -457,7 +460,8 @@ class Campyon(object):
         print >>sys.stderr,"Read " + str(self.rowcount_in) + " lines, outputted " + str(self.rowcount_out)
         
     def plot(self):        
-        fig = matplotlib.pyplot.figure()
+        #fig = matplotlib.pyplot.figure()
+        matplotlib.pyplot.clf()
         if self.plotgrid:
             matplotlib.pyplot.grid(True)
         else:
@@ -473,15 +477,17 @@ class Campyon(object):
                 l.append(self.xs)
                 l.append(self.ys[field])
                 l.append(self.plotconf[i])
-            fig.plot(*l)
+            matplotlib.pyplot.plot(*l)
         else:            
            #TODO: implement bar chart
            raise NotImplementedError
             
         if self.plotfile:
-            fig.savefig(self.plotfile, dpi=None, facecolor='w', edgecolor='w', orientation='portrait', papertype=None, format='png', transparent=False, bbox_inches=None, pad_inches=0.3)
+            print >>sys.stderr, "Saving plot in " + self.plotfile
+            matplotlib.pyplot.savefig(self.plotfile, dpi=None, facecolor='w', edgecolor='w', orientation='portrait', papertype=None, format='png', transparent=False, bbox_inches=None, pad_inches=0.3)
         else:
-            fig.show()
+            print >>sys.stderr, "Showing plot"
+            matplotlib.pyplot.show()
         
     def headerfields(self):          
         return [x[1] for x in sorted(self.header.items()) ]
