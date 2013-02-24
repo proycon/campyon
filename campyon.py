@@ -411,19 +411,19 @@ class Campyon(object):
             print >>sys.stderr, str(i) + ")\t" + word.encode(self.encoding) + "\t" + str(count) + "\t" + str(f * 100) + '%'
         
     def entropy(self, columnindex):        
-        return calcentropy(self.freq[columnindex-1])
+        return calcentropy(self.freq[columnindex])
     
     def tokens(self, columnindex):
-        return sum(self.freq[columnindex-1].values())
+        return sum(self.freq[columnindex].values())
         
     def types(self, columnindex):
-        return len(self.freq[columnindex-1])
+        return len(self.freq[columnindex])
     
     def ttr(self, columnindex):
         return self.types(columnindex) / float(self.tokens(columnindex))
         
     def histdata(self, columnindex):   
-        s = float(self.tokens(columnindex-1))
+        s = float(self.tokens(columnindex))
         for word, count in sorted(self.freq[columnindex].items(), key=lambda x: x[1] * -1):
             yield word, count, count / s
     
