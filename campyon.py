@@ -347,11 +347,23 @@ class Campyon(object):
                 if i in self.highlight:
                     field = bold(red(field))                
                 if self.numberfields:
-                    field = str(i) + '=' + field                
+                    field = str(i) + '=' + field
+                else:                
+                    if field.isdigit() or field[0] == '-' and field[1:].isdigit():
+                        field = int(field)
+                    else:
+                        isfloat = True
+                        try:
+                            f = float(field)
+                        except:
+                            isfloat = False
+                        if isfloat:
+                            field = f
+
                 if action == 'keep':
                     newfields.append(field)
-            s = self.delimiter.join(newfields)
-            
+                    
+            s = self.delimiter.join([ str(x) for x in newfields ])            
             if self.inmemory:
                 self.memory.append(newfields)
             else:                
