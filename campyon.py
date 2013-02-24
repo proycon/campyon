@@ -42,8 +42,14 @@ def usage():
     print >>sys.stderr," -J [sourcekey]:[filename]:[targetkey]:[selecttargetcolumns]:[insertafter]   Joins another data set with this one, on a specified column"  
     print >>sys.stderr,"Column specification:"
     print >>sys.stderr," A comma separated list of column index numbers or column names (if -1 option is used). Column index numbers start with 1. Negative numbers may be used for end-aligned-indices, where -1 is the last column. Ranges may be specified using a colon, for instance: 3:6 equals 3,4,5,6. A selection like 3:-1 select the third up to the last column. A specification like ID,NAME selects the columns names as such."
-    
-        
+    print >>sys.stderr,"Plot options:"
+    print >>sys.stderr," --plotgrid       Draw grid"
+    print >>sys.stderr," --plotxlog       X scale is logarithmic"
+    print >>sys.stderr," --plotylog       Y scale is logarithmic"
+    print >>sys.stderr," --plotfile=[filename]      Save plot to PNG file"
+    print >>sys.stderr," --lineplot       Sets lineplot defaults"
+    print >>sys.stderr," --scatterplot    Sets scatterplot defaults"
+            
 def bold(s):
     CSI="\x1B["
     return CSI+"1m" + s + CSI + "0m"
@@ -104,7 +110,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile="])
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot"])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -134,7 +140,7 @@ class Campyon(object):
         self.plotgrid = self._parsekwargs('plotgrid',False,kwargs)
         self.plotxlog = self._parsekwargs('plotxlog',False,kwargs)
         self.plotylog = self._parsekwargs('plotylog',False,kwargs)
-        self.plotconf = self._parsekwargs('plotconf',['r','g','b','y','m','c','b'],kwargs)
+        self.plotconf = self._parsekwargs('plotconf',['r.-','g.-','b.-','y.-','m.-','c.-'],kwargs)
         self.plotfile = self._parsekwargs('plotfile',"",kwargs)
         
         self.fieldcount = 0
@@ -205,6 +211,10 @@ class Campyon(object):
                 self.plotconf = a.split(',')
             elif o == '--plotfile':     
                 self.plotfile = a
+            elif o == "--lineplot":
+                self.plotconf = self._parsekwargs('plotconf',['r-','g-','b-','y-','m-','c-'],kwargs)
+            elif o == "--scatterplot":
+                self.plotconf = self._parsekwargs('plotconf',['ro ','go ','bo ','yo ','mo ','co '],kwargs)
             elif o == '-a':
                 raise NotImplementedError
             else:
