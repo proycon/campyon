@@ -112,7 +112,7 @@ class Campyon(object):
         self.encoding = self._parsekwargs('encoding',"utf-8",kwargs)
         self.delete = self._parsekwargs('delete',[],kwargs)
         self.keep = self._parsekwargs('keep',[],kwargs)
-        self.delimiter = self._parsekwargs('delimiter'," ",kwargs)
+        self.delimiter = self._parsekwargs('delimiter',"",kwargs)
         self.overwriteinput = self._parsekwargs('overwriteinput',False,kwargs)
         self.outputfile = self._parsekwargs('outputfile',None,kwargs)
         self.DOSTATS = self._parsekwargs('DOSTATS',False,kwargs)
@@ -218,11 +218,31 @@ class Campyon(object):
         f = codecs.open(self.filename,'r',self.encoding)
         for line in f:
             if line.strip() and (not self.commentchar or line[:len(self.commentchar)] != self.commentchar):                    
+                if not self.delimiter:
+                    if "\t" in line:
+                        self.delimiter = "\t"
+                        print >>sys.stderr,"Guessed delimiter: TAB"
+                    elif ";" in line:       
+                        self.delimiter = ";"
+                        print >>sys.stderr,"Guessed delimiter: SEMICOLON"
+                    elif ":" in line:       
+                        self.delimiter = ":"
+                        print >>sys.stderr,"Guessed delimiter: COLON"                                                
+                    elif "," in line:       
+                        self.delimiter = ","
+                        print >>sys.stderr,"Guessed delimiter: COMMA"
+                    elif " " in line:                        
+                        self.delimiter = " " 
+                        print >>sys.stderr,"Guessed delimiter: SPACE"
+                                           
                 fields = line.strip().split(self.delimiter)
                 self.fieldcount = len(fields)
                 print >>sys.stderr,"Number of fields: ", self.fieldcount
                 if self.DOHEADER:
                     self.header = dict([ (x+1,y) for x,y in enumerate(fields) ])
+                                    
+                    
+                    
                 break            
         f.close()
         
