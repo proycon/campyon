@@ -13,8 +13,8 @@ import math
 def usage():
     print >>sys.stderr,"Usage: campyon -f filename"
     print >>sys.stderr,"Options:"
-    print >>sys.stderr," -k [columns]     columns to keep (1-indexed), this is a comma separated list of column numbers, negative numbers are allowed for end-aligned-indices. All others will be deleted"
-    print >>sys.stderr," -d [columns]     columns to delete (1-indexed), this is a comma separated list of column numbers, negative numbers are allowed for end-aligned-indices. All others will be kept"
+    print >>sys.stderr," -k [columns]     columns to keep, see column specification below. All others will be deleted"
+    print >>sys.stderr," -d [columns]     columns to delete, see column specification below. All others will be kept"
     print >>sys.stderr," -e [encoding]    Encoding of the input file, defaults to utf-8"
     print >>sys.stderr," -D [delimiter]   Field delimiter (space by default)"
     print >>sys.stderr," -T               Set tab as delimiter"
@@ -30,7 +30,13 @@ def usage():
     print >>sys.stderr," -1               First line is a header line, containing names of the columns"
     print >>sys.stderr," -p [columns]     Plot columns"
     print >>sys.stderr," -x [column]      Plot as a function of the specified column"  
-   
+    print >>sys.stderr," -X [samplesizes] Draw one or more random samples (non overlapping, comma separated list of sample sizes)"
+    print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
+    print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
+    print >>sys.stderr," -a [column]=[columname]=[expression]   Adds a new column after the specified column"  
+    print >>sys.stderr,"Column specification:"
+    print >>sys.stderr," A comma separated list of column index numbers or column names (if -1 option is used). Column index numbers start with 1. Negative numbers may be used for end-aligned-indices, where -1 is the last column. Ranges may be specified using a colon, for instance: 3:6 equals 3,4,5,6. A selection like 3:-1 select the third up to the last column. A specification like ID,NAME selects the columns names as such."
+    
         
 def bold(s):
     CSI="\x1B["
@@ -92,7 +98,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:p:")
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:p:A:Z:")
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -115,13 +121,18 @@ class Campyon(object):
         self.highlight =  self._parsekwargs('highlight',[],kwargs)
         self.DOHEADER = self._parsekwargs('DOHEADER',False,kwargs)
         
+        
         self.fieldcount = 0
         self.header =  []
+        self.sortreverse = False
+        self.inmemory = False
         
         keepsettings = ""
         deletesettings = ""
         histsettings = ""
         highlightsettings = ""
+        sortsettings = ""
+        
     
         for o, a in opts:
             if o == "-e":	
@@ -157,6 +168,11 @@ class Campyon(object):
                 self.highlightsettings = a
             elif o == '-1':
                 self.DOHEADER = True
+            elif o == '-A':
+                sortsettings = a
+            elif o == '-Z':
+                sortsettings = a
+                self.sortreverse = True                
             else:
                 raise Exception("invalid option: " + o)
                         
@@ -182,13 +198,16 @@ class Campyon(object):
         if deletesettings: self.delete = self.parsecolumns(deletesettings)
         if histsettings: self.hist = self.parsecolumns(histsettings)
         if highlightsettings: self.highlight = self.parsecolumns(highlightsettings)
+        if sortsettings: self.sort = self.parsecolumns(sortsettings)
            
+        if self.sort:
+            self.inmemory = True
         
 
         
         
             
-            
+        self.memory = []    
         self.sumdata = {}
         self.nostats = set()
         self.freq = {}
@@ -250,7 +269,8 @@ class Campyon(object):
             
             if not line.strip() or (self.commentchar and line[:len(self.commentchar)] == self.commentchar):
                 self.rowcount_out += 1
-                yield line.strip()
+                if not self.inmemory:
+                    yield line.strip(), []
                 continue
             
             
@@ -332,11 +352,29 @@ class Campyon(object):
                     newfields.append(field)
             s = self.delimiter.join(newfields)
             
-            yield s, newfields
+            if self.inmemory:
+                self.memory.append(newfields)
+            else:                
+                yield s, newfields
 
+        if self.inmemory:
+            if self.sort:
+               self.memory = sorted(self.memory, key=lambda x: tuple([ x[i] for i in self.sort ]), reverse=self.sortreverse)
+                              
+            if self.header:    
+                s = self.delimiter.join( self.headerfields()  )
+                yield s, self.headerfields()
+    
+            for fields in self.memory:
+                s = self.delimiter.join(fields)
+                yield s, fields
             
         print >>sys.stderr,"Read " + str(self.rowcount_in) + " lines, outputted " + str(self.rowcount_out)
         
+        
+        
+    def headerfields(self):          
+        return [x[1] for x in sorted(self.header.items()) ]
         
     def printstats(self, out=sys.stderr):            
         for colnum, colname, s, average in self.stats():
