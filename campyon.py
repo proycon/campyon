@@ -7,6 +7,9 @@ import getopt
 import os
 import math 
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot
 
 
 
@@ -28,8 +31,8 @@ def usage():
     print >>sys.stderr," -N               Number fields"
     print >>sys.stderr," -M [columns]     Mark/highlight columns"
     print >>sys.stderr," -1               First line is a header line, containing names of the columns"
-    print >>sys.stderr," -p [columns]     Plot columns"
-    print >>sys.stderr," -x [column]      Plot as a function of the specified column"  
+    print >>sys.stderr," -y [columns]     Plot columns (use with -x)"
+    print >>sys.stderr," -x [column]      Plot as a function of the specified column (use with -y)"  
     print >>sys.stderr," -X [samplesizes] Draw one or more random samples (non overlapping, comma separated list of sample sizes)"
     print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
     print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
@@ -98,7 +101,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:p:A:Z:")
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:",["bar","plotgrid","plotxlog","plotylog","plotconf="])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -120,19 +123,29 @@ class Campyon(object):
         self.numberlines =  self._parsekwargs('numberlines',False,kwargs)
         self.highlight =  self._parsekwargs('highlight',[],kwargs)
         self.DOHEADER = self._parsekwargs('DOHEADER',False,kwargs)
+        self.x = self._parsekwargs('x',None,kwargs)
+        self.y = self._parsekwargs('y',[],kwargs)
+
         
+        self.plotgrid = False
+        self.plotxlog = False
+        self.plotylog = False
+        self.plotconf = ['r','g','b','y','m','c','b']
         
         self.fieldcount = 0
         self.header =  []
         self.sortreverse = False
         self.inmemory = False
+        self.xs = []
+        self.ys = {}        
         
         keepsettings = ""
         deletesettings = ""
         histsettings = ""
         highlightsettings = ""
         sortsettings = ""
-        
+        plotxsettings = ""
+        plotysettings = ""
     
         for o, a in opts:
             if o == "-e":	
@@ -172,7 +185,19 @@ class Campyon(object):
                 sortsettings = a
             elif o == '-Z':
                 sortsettings = a
-                self.sortreverse = True                
+                self.sortreverse = True     
+            elif o == '-x':           
+                plotxsettings = a                
+            elif o == '-y':           
+                plotysettings = a           
+            elif o == '--plotgrid':     
+                self.plotgrid = True
+            elif o == '--plotxlog':     
+                self.plotxlog = True                
+            elif o == '--plotylog':     
+                self.plotylog = True
+            elif o == '--plotconf':     
+                self.plotconf = a.split(',') 
             else:
                 raise Exception("invalid option: " + o)
                         
@@ -199,6 +224,8 @@ class Campyon(object):
         if histsettings: self.hist = self.parsecolumns(histsettings)
         if highlightsettings: self.highlight = self.parsecolumns(highlightsettings)
         if sortsettings: self.sort = self.parsecolumns(sortsettings)
+        if plotxsettings: self.x = self.parsecolumnindex(plotxsettings)
+        if plotysettings: self.y = self.parsecolumns(plotysettings)           
            
         if self.sort:
             self.inmemory = True
@@ -246,6 +273,9 @@ class Campyon(object):
                 print >>sys.stderr, "Histogram for column #" + str(fieldnum) + "\ttypes=" + str(self.types(fieldnum)) + "\ttokens=" + str(self.tokens(fieldnum)) + "\tttr=" +  str(self.ttr(fieldnum)) + "\tentropy=" + str(self.entropy(fieldnum))
                 print >>sys.stderr,"------------------------------------------------------------------------"
                 self.printhist(fieldnum)
+                
+        if self.x and self.y:
+            self.plot()
                  
     def __len__(self):        
         return self.rowcount_out
@@ -360,6 +390,17 @@ class Campyon(object):
                         if isfloat:
                             field = f
 
+                if self.x == i+1:
+                    self.xs.append(field)
+                
+                if i+1 in self.y:
+                    if not isinstance(field, float) and not isinstance(field,int):
+                        raise CampyonError("Can not plot non-numeric values: " + field) 
+                        
+                    if not i+1 in self.ys:
+                        self.ys[i+1] = []
+                    self.ys[i+1].append(field)
+
                 if action == 'keep':
                     newfields.append(field)
                     
@@ -383,7 +424,32 @@ class Campyon(object):
             
         print >>sys.stderr,"Read " + str(self.rowcount_in) + " lines, outputted " + str(self.rowcount_out)
         
-        
+    def plot(self):        
+        fig = matplotlib.pyplot.figure()
+        if self.plotgrid:
+            matplotlib.pyplot.grid(True)
+        else:
+            matplotlib.pyplot.grid(False)            
+        if self.plotylog:            
+            fig.set_yscale('log')
+        if all([ isinstance(x,float) or isinstance(x,int) for x in self.xs ]):
+            if self.plotxlog:
+                fig.set_xscale('log')
+
+            l = []
+            for i, field in enumerate(self.y):
+                l.append(self.xs)
+                l.append(self.ys[field])
+                l.append(self.plotconf[i])
+            fig.plot(*l)
+        else:            
+           #TODO: implement bar chart
+           raise NotImplemented 
+            
+        if self.plotfile:
+            fig.savefig(self.plotfile, dpi=None, facecolor='w', edgecolor='w', orientation='portrait', papertype=None, format='png', transparent=False, bbox_inches=None, pad_inches=0.3)
+        else:
+            fig.show()
         
     def headerfields(self):          
         return [x[1] for x in sorted(self.header.items()) ]
