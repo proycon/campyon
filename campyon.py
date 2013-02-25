@@ -372,11 +372,11 @@ class Campyon(object):
                     for i,field in enumerate(fields):
                         if not i in colsize:
                             colsize[i] = 0
-                        if len(field)+margin > colsize[i]:
-                            colsize[i] = len(field)+margin
+                        if len(unicode(field))+margin > colsize[i]:
+                            colsize[i] = len(unicode(field))+margin
                 for line, fields, linenum in self.processmemory():                                                        
                     for field in fields:
-                        spaces = " " * (colsize[i] - len(field))
+                        spaces = " " * (colsize[i] - len(unicode(field)))
                         if f_out:
                             f_out.write(field + spaces)
                         else:
