@@ -24,10 +24,13 @@ import codecs
 import getopt
 import os
 import math 
-import numpy
-import matplotlib
-matplotlib.use('GTKAgg')
-import matplotlib.pyplot
+
+
+if '-x' in sys.argv[1:]: #don't import if not used, to save time
+    import numpy
+    import matplotlib
+    matplotlib.use('GTKAgg')
+    import matplotlib.pyplot
 
 
 
