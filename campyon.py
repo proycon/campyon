@@ -569,7 +569,7 @@ class Campyon(object):
                 if action == 'keep':
                     newfields.append(field)
                     
-            s = self.delimiter.join([ str(x) for x in newfields ])            
+            s = self.delimiter.join([ unicode(x) for x in newfields ])            
             if self.inmemory and not isheader:
                 self.memory.append( (newfields, self.rowcount_out) )
             else:                
