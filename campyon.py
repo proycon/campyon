@@ -177,13 +177,13 @@ class Campyon(object):
         self.xs = []
         self.ys = {}        
         
-        keepsettings = ""
-        deletesettings = ""
-        histsettings = ""
-        highlightsettings = ""
-        sortsettings = ""
-        plotxsettings = ""
-        plotysettings = ""
+        self.keepsettings = ""
+        self.deletesettings = ""
+        self.histsettings = ""
+        self.highlightsettings = ""
+        self.sortsettings = ""
+        self.plotxsettings = ""
+        self.plotysettings = ""
     
         for o, a in opts:
             if o == "-e":	
@@ -191,9 +191,9 @@ class Campyon(object):
             elif o == "-f":	
                 self.filenames = [a]              
             elif o == "-k":	
-                keepsettings = a
+                self.keepsettings = a
             elif o == "-d":	
-                deletesettings = a      
+                self.deletesettings = a      
             elif o == '-D':
                 self.delimiter = a
             elif o == '-o':    
@@ -205,7 +205,7 @@ class Campyon(object):
             elif o == '-S':
                 self.DOSTATS = True
             elif o == '-H':
-                histsettings = a 
+                self.histsettings = a 
             elif o == '-T':
                 self.delimiter = "\t"
             elif o == '-C':
@@ -215,18 +215,18 @@ class Campyon(object):
             elif o == '-N':
                 self.numberfields = True        
             elif o == '-M':    
-                highlightsettings = a
+                self.highlightsettings = a
             elif o == '-1':
                 self.DOHEADER = True
             elif o == '-A':
-                sortsettings = a
+                self.sortsettings = a
             elif o == '-Z':
-                sortsettings = a
+                self.sortsettings = a
                 self.sortreverse = True     
             elif o == '-x':           
-                plotxsettings = a                
+                self.plotxsettings = a                
             elif o == '-y':           
-                plotysettings = a           
+                self.plotysettings = a           
             elif o == '--plotgrid':     
                 self.plotgrid = True
             elif o == '--plotxlog':     
@@ -259,8 +259,32 @@ class Campyon(object):
             if not os.path.exists(filename):
                 print >>sys.stderr,"No such file: " + filename
                 sys.exit(2)
+ 
+           
+        if self.sort:
+            self.inmemory = True
         
-        f = codecs.open(self.filenames[0],'r',self.encoding)
+
+        
+        
+            
+        self.memory = []    
+        self.sumdata = {}
+        self.nostats = set()
+        self.freq = {}
+        
+        
+        if self.keep:
+            print >>sys.stderr, "Fields to keep: ",  " ".join([ str(x) for x in self.keep])
+        if self.delete:
+            print >>sys.stderr, "Fields to delete: ",  " ".join([ str(x) for x in self.delete])
+        
+        self.rowcount_in = 0
+        self.rowcount_out = 0
+        
+        
+    def init(self, filename):       
+        f = codecs.open(filename,'r',self.encoding)
         for line in f:
             if line.strip() and (not self.commentchar or line[:len(self.commentchar)] != self.commentchar):                    
                 if not self.delimiter:
@@ -289,34 +313,13 @@ class Campyon(object):
         f.close()
         
         
-        if keepsettings: self.keep = self.parsecolumns(keepsettings)
-        if deletesettings: self.delete = self.parsecolumns(deletesettings)
-        if histsettings: self.hist = self.parsecolumns(histsettings)
-        if highlightsettings: self.highlight = self.parsecolumns(highlightsettings)
-        if sortsettings: self.sort = self.parsecolumns(sortsettings)
-        if plotxsettings: self.x = self.parsecolumnindex(plotxsettings)
-        if plotysettings: self.y = self.parsecolumns(plotysettings)           
-           
-        if self.sort:
-            self.inmemory = True
-        
-
-        
-        
-            
-        self.memory = []    
-        self.sumdata = {}
-        self.nostats = set()
-        self.freq = {}
-        
-        
-        if self.keep:
-            print >>sys.stderr, "Fields to keep: ",  " ".join([ str(x) for x in self.keep])
-        if self.delete:
-            print >>sys.stderr, "Fields to delete: ",  " ".join([ str(x) for x in self.delete])
-        
-        self.rowcount_in = 0
-        self.rowcount_out = 0
+        if self.keepsettings: self.keep = self.parsecolumns(self.keepsettings)
+        if self.deletesettings: self.delete = self.parsecolumns(self.deletesettings)
+        if self.histsettings: self.hist = self.parsecolumns(self.histsettings)
+        if self.highlightsettings: self.highlight = self.parsecolumns(self.highlightsettings)
+        if self.sortsettings: self.sort = self.parsecolumns(self.sortsettings)
+        if self.plotxsettings: self.x = self.parsecolumnindex(self.plotxsettings)
+        if self.plotysettings: self.y = self.parsecolumns(self.plotysettings)                   
         
     def __call__(self):        
         self.memory = []    
@@ -330,13 +333,21 @@ class Campyon(object):
         if self.outputfile and not self.overwriteinput:
             f_out = codecs.open(self.outputfile, 'w',self.encoding)
                     
+        if not self.overwriteinput and not self.copysuffix:                    
+            self.init(self.filenames[0]) #initialise one, assume same column config for all!
+                    
         for filename in self.filenames:
 
-                            
-            if self.overwriteinput:
-              f_out = codecs.open(filename+".tmp", 'w',self.encoding)
-            elif self.copysuffix:
-              f_out = codecs.open(filename + '.' + self.copysuffix, 'w',self.encoding)
+            if self.overwriteinput or self.copysuffix:                
+                self.memory = []
+                self.nostats = set()                
+                self.rowcount_in = 0
+                self.rowcount_out = 0
+                self.init(filename)
+                if self.overwriteinput:
+                  f_out = codecs.open(filename+".tmp", 'w',self.encoding)
+                elif self.copysuffix:
+                  f_out = codecs.open(filename + '.' + self.copysuffix, 'w',self.encoding)
             
             for line, fields, linenum in self.process(filename):
                 if f_out:                                          
@@ -380,6 +391,20 @@ class Campyon(object):
                 
         if self.x and self.y:
             self.plot()
+            
+    def __iter__(self):            
+        self.memory = []    
+        self.sumdata = {}
+        self.nostats = set()
+        self.freq = {}
+        self.rowcount_in = 0
+        self.rowcount_out = 0
+                
+        self.init(self.filenames[0]) #initialise one, assume same column config for all! 
+                    
+        for filename in self.filenames:        
+            for line, fields, linenum in self.process(filename):
+                yield line, fields, linenum
                  
     def __len__(self):        
         return self.rowcount_out
