@@ -587,7 +587,7 @@ class Campyon(object):
             yield s, self.headerfields(), 0
 
         for fields, linenum in self.memory:
-            s = self.delimiter.join([ str(x) for x in fields])
+            s = self.delimiter.join([ unicode(x) for x in fields])
             yield s, fields, linenum
         
     def plot(self, show=True):        
