@@ -13,9 +13,8 @@
 #       
 #       Licensed under GPLv3
 #
-#
-#   Campyon is a command-line tool and Python library for working with columned data.
-#   It can remove columns, filter on columns, select on row, compute various statistics and plot graphs.
+# Campyon is a command-line tool and Python library for viewing and manipulating columned data files.
+# It supports various filters, statistics, and plotting.
 #
 ###############################################################
 
@@ -33,6 +32,9 @@ import matplotlib.pyplot
 
 
 def usage():
+    print >>sys.stderr,"Campyon - by Maarten van Gompel - http://github.com/proycon/campyon"
+    print >>sys.stderr," Campyon is a command-line tool and Python library for viewing and manipulating columned data files."
+    print >>sys.stderr," It supports various filters, statistics, and plotting."
     print >>sys.stderr,"Usage: campyon -f filename"
     print >>sys.stderr,"Options:"
     print >>sys.stderr," -k [columns]     columns to keep, see column specification below. All others will be deleted"
