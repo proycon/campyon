@@ -1,6 +1,25 @@
 #! /usr/bin/env python
 # -*- coding: utf8 -*-
 
+
+
+###############################################################
+# CAMPYON
+#       by Maarten van Gompel (proycon)
+#       http://github.com/proycon/campyon
+#
+#       Centre for Language Studies
+#       Radboud University Nijmegen
+#       
+#       Licensed under GPLv3
+#
+#
+#   Campyon is a command-line tool and Python library for working with columned data.
+#   It can remove columns, filter on columns, select on row, compute various statistics and plot graphs.
+#
+###############################################################
+
+
 import sys
 import codecs
 import getopt
