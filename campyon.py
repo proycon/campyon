@@ -60,6 +60,7 @@ def usage():
     
     print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
     print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
+    print >>sys.stderr," -v               Pretty view output, replaces tabs with spaces to nicely align columns"
     print >>sys.stderr," --copysuffix=[suffix]       Output an output file with specified suffix for each inputfile (use instead of -o or -i)"
     print >>sys.stderr,"Options to be implemented still:"
     print >>sys.stderr," -X [samplesizes] Draw one or more random samples (non overlapping, comma separated list of sample sizes)"
@@ -82,6 +83,11 @@ def bold(s):
 def red(s):
     CSI="\x1B["
     return CSI+"31m" + s + CSI + "0m"  
+
+
+def magenta(s):
+    CSI="\x1B["
+    return CSI+"35m" + s + CSI + "0m"   
 
 def calcentropy(d, base = 2):
       """Compute the entropy of the distribution"""
@@ -135,7 +141,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix="])
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:v",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix="])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -169,6 +175,8 @@ class Campyon(object):
         self.plotconf = self._parsekwargs('plotconf',['r.-','g.-','b.-','y.-','m.-','c.-'],kwargs)
         self.plotfile = self._parsekwargs('plotfile',"",kwargs)
         self.plottitle = self._parsekwargs('plottitle',"",kwargs)
+        
+        self.prettyview = False
         
         self.fieldcount = 0
         self.header =  {}
@@ -226,7 +234,9 @@ class Campyon(object):
             elif o == '-x':           
                 self.plotxsettings = a                
             elif o == '-y':           
-                self.plotysettings = a           
+                self.plotysettings = a
+            elif o == '-v':           
+                self.prettyview = True
             elif o == '--plotgrid':     
                 self.plotgrid = True
             elif o == '--plotxlog':     
@@ -261,11 +271,9 @@ class Campyon(object):
                 sys.exit(2)
  
            
-        if self.sort:
+        if self.sort or self.prettyview:
             self.inmemory = True
-        
 
-        
         
             
         self.memory = []    
@@ -351,16 +359,37 @@ class Campyon(object):
             
             for line, fields, linenum in self.process(filename):
                 if f_out:                                          
-                    if self.numberlines: f_out.write("@" + str(linenum) + self.delimiter)
+                    if self.numberlines: f_out.write(str(linenum) + self.delimiter)
                     f_out.write(line + "\n")
                 else:
-                    if self.numberlines: print "@" + str(linenum) + self.delimiter,
+                    if self.numberlines: print magenta(str(linenum)) + self.delimiter,
                     print line.encode(self.encoding)
         
+            if self.prettyview:
+                margin = 2
+                colsize = {}
+                for line, fields, linenum in self.processmemory():                    
+                    for i,field in enumerate(fields):
+                        if not i in colsize:
+                            colsize[i] = 0
+                        if len(field)+margin > colsize[i]:
+                            colsize[i] = len(field)+margin
+                for line, fields, linenum in self.processmemory():                                                        
+                    for field in fields:
+                        spaces = " " * (colsize[i] - len(field))
+                        if f_out:
+                            f_out.write(field + spaces)
+                        else:
+                            print field.encode(self.encoding) + spaces,
+                    if f_out:
+                        f_out.write("\n")
+                    else:
+                        print
+                         
             if f_out and (self.overwriteinput or self.copysuffix):
                 if self.inmemory:
                     for line, fields, linenum in self.processmemory():                                          
-                        if self.numberlines: f_out.write("@" + str(linenum) + self.delimiter)
+                        if self.numberlines: f_out.write(str(linenum) + self.delimiter)
                         f_out.write(line + "\n")                           
                 f_out.close()
                 f_out = None
@@ -371,10 +400,10 @@ class Campyon(object):
         if self.inmemory and not self.overwriteinput and not self.copysuffix:
             for line, fields, linenum in self.processmemory():
                 if f_out:                                          
-                    if self.numberlines: f_out.write("@" + str(linenum) + self.delimiter)
+                    if self.numberlines: f_out.write(str(linenum) + self.delimiter)
                     f_out.write(line + "\n")
                 else:
-                    if self.numberlines: print "@" + str(linenum) + self.delimiter,
+                    if self.numberlines: print magenta(str(linenum)) + self.delimiter,
                     print line.encode(self.encoding)            
               
         if f_out:
@@ -513,7 +542,7 @@ class Campyon(object):
                 if fieldnum in self.highlight:
                     field = bold(red(field))                
                 if self.numberfields:
-                    field = str(i) + '=' + field
+                    field = magenta(str(i)) + '=' + field
                 else:                
                     if field.isdigit() or field[0] == '-' and field[1:].isdigit():
                         field = int(field)
