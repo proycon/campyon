@@ -38,14 +38,14 @@ def usage():
     print >>sys.stderr,"Campyon - by Maarten van Gompel - http://github.com/proycon/campyon"
     print >>sys.stderr," Campyon is a command-line tool and Python library for viewing and manipulating columned data files."
     print >>sys.stderr," It supports various filters, statistics, and plotting."
-    print >>sys.stderr,"Usage: campyon -f filename"
+    print >>sys.stderr,"Usage: campyon [options] [filename] [[filename2]...]"
     print >>sys.stderr,"Options:"
     print >>sys.stderr," -k [columns]     columns to keep, see column specification below. All others will be deleted"
     print >>sys.stderr," -d [columns]     columns to delete, see column specification below. All others will be kept"
     print >>sys.stderr," -e [encoding]    Encoding of the input file, defaults to utf-8"
     print >>sys.stderr," -D [delimiter]   Field delimiter (space by default)"
     print >>sys.stderr," -T               Set tab as delimiter"
-    print >>sys.stderr," -o [outputfile]  Output to file instead of stdout"
+    print >>sys.stderr," -o [outputfile]  Output to file instead of stdout (will aggregate in case multiple input files are specified)"
     print >>sys.stderr," -i               Outputfile equals inputfile"
     print >>sys.stderr," -s [expression]  Select rows, expression may use variables #1...#n for the columns, and operators and,or,not,>,<,!=,== (python syntax)."
     print >>sys.stderr," -S               Compute statistics"
@@ -60,6 +60,7 @@ def usage():
     
     print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
     print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
+    print >>sys.stderr," --copysuffix=[suffix]       Output an output file with specified suffix for each inputfile (use instead of -o or -i)"
     print >>sys.stderr,"Options to be implemented still:"
     print >>sys.stderr," -X [samplesizes] Draw one or more random samples (non overlapping, comma separated list of sample sizes)"
     print >>sys.stderr," -a [column]=[columname]=[expression]   Adds a new column after the specified column"
@@ -134,14 +135,14 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle"])
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix="])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
 	        usage()
 	        sys.exit(2)           
         
-        self.filename = self._parsekwargs('filename',"",kwargs)
+        self.filenames = self._parsekwargs('filenames',"",kwargs)
         self.encoding = self._parsekwargs('encoding',"utf-8",kwargs)
         self.delete = self._parsekwargs('delete',[],kwargs)
         self.keep = self._parsekwargs('keep',[],kwargs)
@@ -160,6 +161,7 @@ class Campyon(object):
         self.x = self._parsekwargs('x',None,kwargs)
         self.y = self._parsekwargs('y',[],kwargs)
 
+        self.copysuffix = self._parsekwargs('copysuffix',"",kwargs)
         
         self.plotgrid = self._parsekwargs('plotgrid',False,kwargs)
         self.plotxlog = self._parsekwargs('plotxlog',False,kwargs)
@@ -187,7 +189,7 @@ class Campyon(object):
             if o == "-e":	
                 self.encoding = a
             elif o == "-f":	
-                self.filename = a              
+                self.filenames = [a]              
             elif o == "-k":	
                 keepsettings = a
             elif o == "-d":	
@@ -199,7 +201,6 @@ class Campyon(object):
             elif o == '-s':
                 self.select = a
             elif o == '-i':
-                self.outputfile = self.filename + ".tmp"
                 self.overwriteinput = True
             elif o == '-S':
                 self.DOSTATS = True
@@ -240,20 +241,26 @@ class Campyon(object):
                 self.plotconf = self._parsekwargs('plotconf',['r-','g-','b-','y-','m-','c-'],kwargs)
             elif o == "--scatterplot":
                 self.plotconf = self._parsekwargs('plotconf',['ro ','go ','bo ','yo ','mo ','co '],kwargs)
+            elif o == '--copysuffix':
+                self.copysuffix = a
             elif o == '-a':
                 raise NotImplementedError
             else:
                 raise Exception("invalid option: " + o)
+
+        if args:
+            self.filenames = args
                         
-        if not self.filename:    
+        if not self.filenames:    
             usage()
             sys.exit(2)
 
-        if not os.path.exists(self.filename):
-            print >>sys.stderr,"No such file: " + self.filename
-            sys.exit(2)
+        for filename in self.filenames:
+            if not os.path.exists(filename):
+                print >>sys.stderr,"No such file: " + filename
+                sys.exit(2)
         
-        f = codecs.open(self.filename,'r',self.encoding)
+        f = codecs.open(self.filenames[0],'r',self.encoding)
         for line in f:
             if line.strip() and (not self.commentchar or line[:len(self.commentchar)] != self.commentchar):                    
                 if not self.delimiter:
@@ -312,22 +319,55 @@ class Campyon(object):
         self.rowcount_out = 0
         
     def __call__(self):        
-        if self.outputfile:
-            f_out = codecs.open(self.outputfile, 'w',self.encoding)
-            
-        for line, fields, linenum in self:
-            if self.outputfile:                                          
-                if self.numberlines: f_out.write("@" + str(linenum) + self.delimiter)
-                f_out.write(line + "\n")
-            else:
-                if self.numberlines: print "@" + str(linenum) + self.delimiter,
-                print line.encode(self.encoding)
-              
-        if self.outputfile:
-            f_out.close()
+        self.memory = []    
+        self.sumdata = {}
+        self.nostats = set()
+        self.freq = {}
+        self.rowcount_in = 0
+        self.rowcount_out = 0
+        f_out = None
         
-        if self.overwriteinput:
-            os.rename(self.outputfile,self.filename)
+        if self.outputfile and not self.overwriteinput:
+            f_out = codecs.open(self.outputfile, 'w',self.encoding)
+                    
+        for filename in self.filenames:
+
+                            
+            if self.overwriteinput:
+              f_out = codecs.open(filename+".tmp", 'w',self.encoding)
+            elif self.copysuffix:
+              f_out = codecs.open(filename + '.' + self.copysuffix, 'w',self.encoding)
+            
+            for line, fields, linenum in self.process(filename):
+                if f_out:                                          
+                    if self.numberlines: f_out.write("@" + str(linenum) + self.delimiter)
+                    f_out.write(line + "\n")
+                else:
+                    if self.numberlines: print "@" + str(linenum) + self.delimiter,
+                    print line.encode(self.encoding)
+        
+            if f_out and (self.overwriteinput or self.copysuffix):
+                if self.inmemory:
+                    for line, fields, linenum in self.processmemory():                                          
+                        if self.numberlines: f_out.write("@" + str(linenum) + self.delimiter)
+                        f_out.write(line + "\n")                           
+                f_out.close()
+                f_out = None
+                if self.overwriteinput:
+                    os.rename(filename+".tmp",filename)
+                
+
+        if self.inmemory and not self.overwriteinput and not self.copysuffix:
+            for line, fields, linenum in self.processmemory():
+                if f_out:                                          
+                    if self.numberlines: f_out.write("@" + str(linenum) + self.delimiter)
+                    f_out.write(line + "\n")
+                else:
+                    if self.numberlines: print "@" + str(linenum) + self.delimiter,
+                    print line.encode(self.encoding)            
+              
+        if f_out:
+            f_out.close()        
             
         if self.DOSTATS:            
             self.printstats()
@@ -344,12 +384,10 @@ class Campyon(object):
     def __len__(self):        
         return self.rowcount_out
         
-    def __iter__(self):            
-        self.sumdata = {}
-        self.nostats = set()
-        self.freq = {}                
-        self.rowcount_in = 0
-        self.rowcount_out = 0 
+    def process(self, f):                                    
+        if self.overwriteinput:
+            self.rowcount_in = 0
+            self.rowcount_out = 0 
         
         if self.keep: 
             default = 'delete'
@@ -357,12 +395,15 @@ class Campyon(object):
             default = 'keep'        
             
         headerfound = False
-                           
-        f = codecs.open(self.filename,'r',self.encoding)
-        for line in f:
-            isheader = False
-            self.rowcount_in += 1
+
+        if isinstance(f, str) or isinstance(f, unicode):                           
+            f = codecs.open(f,'r',self.encoding)
             
+        for line in f:
+            if not isinstance(line, unicode):
+                line = unicode(line, self.encoding)
+            isheader = False
+            self.rowcount_in += 1            
             
             if not line.strip() or (self.commentchar and line[:len(self.commentchar)] == self.commentchar):
                 self.rowcount_out += 1
@@ -480,19 +521,20 @@ class Campyon(object):
             else:                
                 yield s, newfields, self.rowcount_out
 
-        if self.inmemory:
-            if self.sort:
-               self.memory = sorted(self.memory, key=lambda x: tuple([ x[0][i-1] for i in self.sort ]), reverse=self.sortreverse)
-                              
-            if self.header:    
-                s = self.delimiter.join( self.headerfields()  )
-                yield s, self.headerfields(), 0
-    
-            for fields, linenum in self.memory:
-                s = self.delimiter.join([ str(x) for x in fields])
-                yield s, fields, linenum
             
         print >>sys.stderr,"Read " + str(self.rowcount_in) + " lines, outputted " + str(self.rowcount_out)
+
+    def processmemory(self):    
+        if self.sort:
+           self.memory = sorted(self.memory, key=lambda x: tuple([ x[0][i-1] for i in self.sort ]), reverse=self.sortreverse)
+                          
+        if self.header:    
+            s = self.delimiter.join( self.headerfields()  )
+            yield s, self.headerfields(), 0
+
+        for fields, linenum in self.memory:
+            s = self.delimiter.join([ str(x) for x in fields])
+            yield s, fields, linenum
         
     def plot(self, show=True):        
         barcolors = 'rgbymc'
