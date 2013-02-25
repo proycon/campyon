@@ -378,9 +378,9 @@ class Campyon(object):
                     for field in fields:
                         spaces = " " * (colsize[i] - len(unicode(field)))
                         if f_out:
-                            f_out.write(field + spaces)
+                            f_out.write(unicode(field) + spaces)
                         else:
-                            print field.encode(self.encoding) + spaces,
+                            print unicode(field).encode(self.encoding) + spaces,
                     if f_out:
                         f_out.write("\n")
                     else:
