@@ -84,6 +84,10 @@ def red(s):
     CSI="\x1B["
     return CSI+"31m" + s + CSI + "0m"  
 
+def green(s):
+    CSI="\x1B["
+    return CSI+"32m" + s + CSI + "0m"   
+
 
 def magenta(s):
     CSI="\x1B["
@@ -362,7 +366,7 @@ class Campyon(object):
                     if self.numberlines: f_out.write(str(linenum) + self.delimiter)
                     f_out.write(line + "\n")
                 else:
-                    if self.numberlines: print magenta(str(linenum)) + self.delimiter,
+                    if self.numberlines: print green(str(linenum)) + self.delimiter,
                     print line.encode(self.encoding)
         
             if self.prettyview:
@@ -403,7 +407,7 @@ class Campyon(object):
                     if self.numberlines: f_out.write(str(linenum) + self.delimiter)
                     f_out.write(line + "\n")
                 else:
-                    if self.numberlines: print magenta(str(linenum)) + self.delimiter,
+                    if self.numberlines: print green(str(linenum)) + self.delimiter,
                     print line.encode(self.encoding)            
               
         if f_out:
