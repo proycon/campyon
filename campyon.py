@@ -201,8 +201,15 @@ class CampyonViewer(object):
 
         # set background color property
         #self.cellpb.set_property('cell-background', 'yellow')
-        for cr in self.cellrenderers:
-            cr.set_property('cell-background', 'white')
+        for i,cr in enumerate(self.cellrenderers):
+            if c.numberlines:
+                fieldnum = i
+            else:
+                fieldnum = i + 1
+            if fieldnum in c.highlight:
+                cr.set_property('cell-background', 'yellow')
+            else:
+                cr.set_property('cell-background', 'white')
         #self.cell1.set_property('cell-background', 'pink')
 
 
@@ -711,10 +718,13 @@ class Campyon(object):
                     action = 'keep'
                 elif fieldnum in self.delete:
                     action = 'delete'
-                if fieldnum in self.highlight:
+                if fieldnum in self.highlight and not self.guiview:
                     field = bold(red(field))                
                 if self.numberfields:
-                    field = magenta(str(i)) + '=' + field
+                    if not self.guiview:
+                        field = str(i) + '=' + field
+                    else:
+                        field = magenta(str(i)) + '=' + field
                 else:                
                     if field.isdigit() or field[0] == '-' and field[1:].isdigit():
                         field = int(field)
