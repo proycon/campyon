@@ -31,7 +31,8 @@ if '-x' in sys.argv[1:]: #don't import if not used, to save time
     import matplotlib
     matplotlib.use('GTKAgg')
     import matplotlib.pyplot
-
+if '-V' in sys.argv[1:]: #don't import if not used, to save time
+    import gtk
 
 
 def usage():
@@ -61,6 +62,7 @@ def usage():
     print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
     print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
     print >>sys.stderr," -v               Pretty view output, replaces tabs with spaces to nicely align columns. You may want to combine this with -n and --nl, and perhaps -N"
+    print >>sys.stderr," -V               Pretty view output in a GUI"    
     print >>sys.stderr," --copysuffix=[suffix]       Output an output file with specified suffix for each inputfile (use instead of -o or -i)"
     print >>sys.stderr," --nl             Insert an extra empty newline after each line"
     print >>sys.stderr,"Options to be implemented still:"
@@ -108,6 +110,110 @@ def calcentropy(d, base = 2):
 class CampyonError(Exception):
     pass
 
+
+class CampyonViewer(object):
+
+    # close the window and quit
+    def delete_event(self, widget, event, data=None):
+        gtk.main_quit()
+        return False
+
+    def __init__(self, c, filename):
+        # Create a new window
+        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+
+        self.window.set_title(filename)
+
+        #self.window.set_size_request(640, 480)
+
+        self.window.connect("delete_event", self.delete_event)
+
+        types = []
+        first = True
+        for line, fields, linenum in c.processmemory():  
+            if first:
+                for field in fields:      
+                    if isinstance(field, float):
+                        types.append(float)
+                    elif isinstance(field, int):
+                        types.append(int)
+                    else:                        
+                        types.append(str)                        
+                first = False
+            else:
+                for i, field in enumerate(fields):
+                    if types[i] == int and isinstance(field, float):
+                        types[i] = float
+                    elif isinstance(field, str) or isinstance(field, unicode):
+                        types[i] = str
+                
+        print repr(types)
+                
+        # create a liststore with one string column to use as the model
+        self.liststore = gtk.ListStore(*types) #(str, str, str, 'gboolean')
+
+        # create the TreeView using liststore
+        self.treeview = gtk.TreeView(self.liststore)
+
+        # create the TreeViewColumns to display the data
+        self.columns = []
+        self.cellrenderers = []
+        if c.header:
+            for colname in c.headerfields():
+                self.columns.append( gtk.TreeViewColumn(colname) )
+                self.cellrenderers.append( gtk.CellRendererText() ) 
+        else:
+            for num in len(types):
+                self.columns.append( gtk.TreeViewColumn(str(num+1)) )
+                self.cellrenderers.append( gtk.CellRendererText() ) 
+
+        #add data
+        first = True
+        for line, fields, linenum in c.processmemory(): 
+            if not first and c.header:             
+                self.liststore.append(fields)
+            first = False
+
+        # add columns to treeview
+        for col in self.columns:
+            self.treeview.append_column(col)
+
+        # create a CellRenderers to render the data
+        
+     
+        
+
+        # set background color property
+        #self.cellpb.set_property('cell-background', 'yellow')
+        for cr in self.cellrenderers:
+            cr.set_property('cell-background', 'white')
+        #self.cell1.set_property('cell-background', 'pink')
+
+
+        
+
+            
+
+        # set the cell attributes to the appropriate liststore column
+        for i, (col, cr) in enumerate(zip(self.columns, self.cellrenderers)):
+            col.pack_start(cr, True)         # add the cells to the columns 
+            col.set_attributes(cr,text=i)
+            col.set_sort_column_id(i)
+
+        # make treeview searchable
+        self.treeview.set_search_column(0)
+
+        # Allow sorting on the column
+        #self.tvcolumn.set_sort_column_id(0)
+
+        # Allow drag and drop reordering of rows
+        self.treeview.set_reorderable(True)
+
+        self.window.add(self.treeview)
+
+        self.window.show_all()
+
+
 class Campyon(object):
     def _parsekwargs(self, key, default, kwargs):
         if key in kwargs:
@@ -146,7 +252,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:v",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix=","nl"])
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:vV",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix=","nl"])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -183,6 +289,7 @@ class Campyon(object):
         
         self.prettyview = False
         self.extranewline = False
+        self.guiview = False
         
         self.fieldcount = 0
         self.header =  {}
@@ -243,6 +350,8 @@ class Campyon(object):
                 self.plotysettings = a
             elif o == '-v':           
                 self.prettyview = True
+            elif o == '-V':
+                self.guiview = True
             elif o == '--plotgrid':     
                 self.plotgrid = True
             elif o == '--plotxlog':     
@@ -279,7 +388,7 @@ class Campyon(object):
                 sys.exit(2)
  
            
-        if self.sort or self.sortsettings or self.prettyview:
+        if self.sort or self.sortsettings or self.prettyview or self.guiview:
             self.inmemory = True
 
         
@@ -393,7 +502,12 @@ class Campyon(object):
                         f_out.write("\n")
                     else:
                         print
-                         
+            elif self.guiview: 
+                v = CampyonViewer(self, filename)
+                gtk.main()
+                del v
+                
+                                     
             if f_out and (self.overwriteinput or self.copysuffix):
                 if self.inmemory:                    
                     for line, fields, linenum in self.processmemory():                                          
@@ -444,6 +558,8 @@ class Campyon(object):
                  
     def __len__(self):        
         return self.rowcount_out
+        
+        
         
     def process(self, f):                                    
         if self.overwriteinput:
@@ -598,6 +714,9 @@ class Campyon(object):
         for fields, linenum in self.memory:
             s = self.delimiter.join([ unicode(x) for x in fields])
             yield s, fields, linenum
+
+        
+
         
     def plot(self, show=True):        
         barcolors = 'rgbymc'
