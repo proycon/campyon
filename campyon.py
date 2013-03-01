@@ -24,6 +24,7 @@ import codecs
 import getopt
 import os
 import math 
+import re
 
 
 if '-x' in sys.argv[1:]: #don't import if not used, to save time
@@ -48,11 +49,12 @@ def usage():
     print >>sys.stderr," -T               Set tab as delimiter"
     print >>sys.stderr," -o [outputfile]  Output to file instead of stdout (will aggregate in case multiple input files are specified)"
     print >>sys.stderr," -i               Outputfile equals inputfile"
-    print >>sys.stderr," -s [expression]  Select rows, expression may use functions c(1)...c(n) for obtaining the value in the specified column, and operators and,or,not,>,<,!=,== (python syntax). Named values are also allowed if -1 is enabled: c(\"NAME\"). "
+    print >>sys.stderr," -s [expression]  Select rows, see section on selector specification below for syntax"
     print >>sys.stderr," -S               Compute statistics"
     print >>sys.stderr," -H [columns]     Compute histogram on the specified columns"
     print >>sys.stderr," -C [char]        Ignore comments, line starting with the specified character. Example: -C #"
     print >>sys.stderr," -n               Number lines"
+
     print >>sys.stderr," -N               Number fields"
     print >>sys.stderr," -M [columns]     Mark/highlight columns"
     print >>sys.stderr," -1               First line is a header line, containing names of the columns"
@@ -65,18 +67,25 @@ def usage():
     print >>sys.stderr," -V               Pretty view output in a GUI"    
     print >>sys.stderr," --copysuffix=[suffix]       Output an output file with specified suffix for each inputfile (use instead of -o or -i)"
     print >>sys.stderr," --nl             Insert an extra empty newline after each line"
+    print >>sys.stderr,"Selection shortcuts:"
+    print >>sys.stderr," -g [key]         Does a grep. Shortcut for: -s 'A() == \"key\"'"
+    print >>sys.stderr," -G [key]         Does an inverse grep. Shortcut for: -s 'not (A() == \"key\"')"        
     print >>sys.stderr,"Options to be implemented still:"
     print >>sys.stderr," -X [samplesizes] Draw one or more random samples (non overlapping, comma separated list of sample sizes)"
     print >>sys.stderr," -a [column]=[columname]=[expression]   Adds a new column after the specified column"
     print >>sys.stderr," -J [sourcekey]:[filename]:[targetkey]:[selecttargetcolumns]:[insertafter]   Joins another data set with this one, on a specified column"  
     print >>sys.stderr,"Column specification:"
     print >>sys.stderr," A comma separated list of column index numbers or column names (if -1 option is used). Column index numbers start with 1. Negative numbers may be used for end-aligned-indices, where -1 is the last column. Ranges may be specified using a colon, for instance: 3:6 equals 3,4,5,6. A selection like 3:-1 select the third up to the last column. A specification like ID,NAME selects the columns names as such."
-    print >>sys.stderr,"Selection specification:"
-    print >>sys.stderr," The selection specification (-s) is normal python code and thus allows for a great deal of flexibility. The following functions are available in this context:"
-    print >>sys.stderr,"    c(n)         Returns the value in column with index n"
-    print >>sys.stderr,"    c('NAME')    Return the value in the column with the specified name"
+    print >>sys.stderr,"Selector specification:"
+    print >>sys.stderr," The selection specification (-s) is normal python code and thus allows for a great deal of flexibility. You can use the normal boolean operators and, or, not to combine expressions. The following campyon-specific functions are available in selector context:"
+    print >>sys.stderr,"    c(n)           Returns the value in column with index n"
+    print >>sys.stderr,"    c('NAME')      Return the value in the column with the specified name"
     print >>sys.stderr,"    C((n,n....))   Match conjunction of multiple columns. An expression like   C((1,2)) > 4  is the same as: c(1) > 4 and c(2) > 4 . Names instead of numbers are also allowed. Note the double parentheses."
-    print >>sys.stderr,"    D((n,n....))   Match disjunction of multiple columns. An expression like   D((1,2)) > 4  is the same as: c(1) > 4 or c(2) > 4 . Names instead of numbers are also allowed. Note the double parentheses."        
+    print >>sys.stderr,"    D((n,n....))   Match disjunction of multiple columns. An expression like   D((1,2)) > 4  is the same as: c(1) > 4 or c(2) > 4 . Names instead of numbers are also allowed. Note the double parentheses."
+    print >>sys.stderr,"    A()            Any field, applies a disjunction over all columns."
+    print >>sys.stderr,"    r('REGEXP',n)  Apply regular expression on column n, uses standard python re.search(). Also:"
+    print >>sys.stderr,"    r('REGEXP','NAME')"     
+    print >>sys.stderr," The selection specification (-s) is normal python code and thus allows for a great deal of flexibility. The following functions are available in this context:"    
     print >>sys.stderr,"Plot options:"
     print >>sys.stderr," --plotgrid       Draw grid"
     print >>sys.stderr," --plotxlog       X scale is logarithmic"
@@ -287,7 +296,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:vV",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix=","nl"])
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:vVg:G:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix=","nl"])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -405,6 +414,10 @@ class Campyon(object):
                 self.copysuffix = a
             elif o == '--nl':
                 self.extranewline = True
+            elif o == '-g':
+                self.select = 'A() == "' + a.replace('"','\\"') + '"'
+            elif o == '-G':
+                self.select = 'not (A() == "' + a.replace('"','\\"') + '")'                
             elif o == '-a':
                 raise NotImplementedError
             else:
@@ -668,6 +681,8 @@ class Campyon(object):
                 c = lambda x: fields[self.parsecolumnindex(x)-1]
                 C = lambda x: ConjunctionSelector(c, *x)
                 D = lambda x: DisjunctionSelector(c, *x)  
+                r = lambda x,y: re.search(x,c(y))
+                A = lambda: D(range(1,len(fields)+1))
                 if not eval(self.select):
                     continue
         
@@ -888,51 +903,53 @@ class ConjunctionSelector(object):
         self.args = [ c(x) for x in args ]
 
     def __eq__(self, y):
-        return all([ x == y for x in args ])
+        return all([ x == y for x in self.args ])
     
     def __ne__(self, y):
-        return all([ x != y for x in args ])    
+        return all([ x != y for x in self.args ])    
     
     def __gt__(self, y):
-        return all([ x > y for x in args ])
+        return all([ x > y for x in self.args ])
 
     def __lt__(self, y):
-        return all([ x < y for x in args ])
+        return all([ x < y for x in self.args ])
     
     def __ge__(self, y):
-        return all([ x >= y for x in args ])
+        return all([ x >= y for x in self.args ])
     
     def __le__(self, y):
-        return all([ x <= y for x in args ])    
+        return all([ x <= y for x in self.args ])    
     
-    
+    def __contains__(self, y):
+        return all([ x in y for x in self.args ])
     
 class DisjunctionSelector(object):
     def __init__(self, c, *args):
         self.args = [ c(x) for x in args ]    
     
     def __eq__(self, y):
-        return any([ x == y for x in args ])
+        return any([ x == y for x in self.args ])
     
     def __ne__(self, y):
-        return any([ x != y for x in args ])    
+        return any([ x != y for x in self.args ])    
     
     def __gt__(self, y):
-        return any([ x > y for x in args ])
+        return any([ x > y for x in self.args ])
 
     def __lt__(self, y):
-        return any([ x < y for x in args ])
+        return any([ x < y for x in self.args ])
     
     def __ge__(self, y):
-        return any([ x >= y for x in args ])
+        return any([ x >= y for x in self.args ])
     
     def __le__(self, y):
-        return any([ x <= y for x in args ])    
-        
+        return any([ x <= y for x in self.args ])    
+
+    def __contains__(self, y):
+        return any([ x in y for x in self.args ])        
     
 
         
 if __name__ == "__main__":         
     campyon = Campyon(*sys.argv[1:])
     campyon()
-            
