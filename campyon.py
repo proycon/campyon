@@ -48,7 +48,7 @@ def usage():
     print >>sys.stderr," -T               Set tab as delimiter"
     print >>sys.stderr," -o [outputfile]  Output to file instead of stdout (will aggregate in case multiple input files are specified)"
     print >>sys.stderr," -i               Outputfile equals inputfile"
-    print >>sys.stderr," -s [expression]  Select rows, expression may use variables #1...#n for the columns, and operators and,or,not,>,<,!=,== (python syntax)."
+    print >>sys.stderr," -s [expression]  Select rows, expression may use functions c(1)...c(n) for obtaining the value in the specified column, and operators and,or,not,>,<,!=,== (python syntax). Named values are also allowed if -1 is enabled: c(\"NAME\"). "
     print >>sys.stderr," -S               Compute statistics"
     print >>sys.stderr," -H [columns]     Compute histogram on the specified columns"
     print >>sys.stderr," -C [char]        Ignore comments, line starting with the specified character. Example: -C #"
@@ -71,6 +71,12 @@ def usage():
     print >>sys.stderr," -J [sourcekey]:[filename]:[targetkey]:[selecttargetcolumns]:[insertafter]   Joins another data set with this one, on a specified column"  
     print >>sys.stderr,"Column specification:"
     print >>sys.stderr," A comma separated list of column index numbers or column names (if -1 option is used). Column index numbers start with 1. Negative numbers may be used for end-aligned-indices, where -1 is the last column. Ranges may be specified using a colon, for instance: 3:6 equals 3,4,5,6. A selection like 3:-1 select the third up to the last column. A specification like ID,NAME selects the columns names as such."
+    print >>sys.stderr,"Selection specification:"
+    print >>sys.stderr," The selection specification (-s) is normal python code and thus allows for a great deal of flexibility. The following functions are available in this context:"
+    print >>sys.stderr,"    c(n)         Returns the value in column with index n"
+    print >>sys.stderr,"    c('NAME')    Return the value in the column with the specified name"
+    print >>sys.stderr,"    C((n,n....))   Match conjunction of multiple columns. An expression like   C((1,2)) > 4  is the same as: c(1) > 4 and c(2) > 4 . Names instead of numbers are also allowed. Note the double parentheses."
+    print >>sys.stderr,"    D((n,n....))   Match disjunction of multiple columns. An expression like   D((1,2)) > 4  is the same as: c(1) > 4 or c(2) > 4 . Names instead of numbers are also allowed. Note the double parentheses."        
     print >>sys.stderr,"Plot options:"
     print >>sys.stderr," --plotgrid       Draw grid"
     print >>sys.stderr," --plotxlog       X scale is logarithmic"
@@ -109,7 +115,6 @@ def calcentropy(d, base = 2):
 
 class CampyonError(Exception):
     pass
-
 
 class CampyonViewer(object):
 
@@ -250,6 +255,8 @@ class Campyon(object):
             return default
     
     def parsecolumnindex(self, s):
+        if isinstance(s,int):
+            return s
         if s[0] == '-' and s[1:].isdigit():
             return self.fieldcount + int(s) + 1
         elif s.isdigit():
@@ -658,18 +665,10 @@ class Campyon(object):
         
             
             if self.select and not isheader:
-                currentselect = self.select
-                for i in reversed(range(1,len(fields)+1)):
-                    isdigit = True
-                    try:
-                        x = float(fields[i-1])
-                    except:                    
-                        isdigit = False
-                    if isdigit:
-                        currentselect = currentselect.replace('#' + str(i), fields[i-1])
-                    else:
-                        currentselect = currentselect.replace('#' + str(i), '"' + fields[i-1].replace('"',"\\\"") + '"')
-                if not eval(currentselect):
+                c = lambda x: fields[self.parsecolumnindex(x)-1]
+                C = lambda x: ConjunctionSelector(c, *x)
+                D = lambda x: DisjunctionSelector(c, *x)  
+                if not eval(self.select):
                     continue
         
             self.rowcount_out += 1
@@ -882,6 +881,56 @@ class Campyon(object):
             if key == colname:
                 return i
         raise KeyError("Column " + colname + " not found")
+
+
+class ConjunctionSelector(object):
+    def __init__(self, c, *args):    
+        self.args = [ c(x) for x in args ]
+
+    def __eq__(self, y):
+        return all([ x == y for x in args ])
+    
+    def __ne__(self, y):
+        return all([ x != y for x in args ])    
+    
+    def __gt__(self, y):
+        return all([ x > y for x in args ])
+
+    def __lt__(self, y):
+        return all([ x < y for x in args ])
+    
+    def __ge__(self, y):
+        return all([ x >= y for x in args ])
+    
+    def __le__(self, y):
+        return all([ x <= y for x in args ])    
+    
+    
+    
+class DisjunctionSelector(object):
+    def __init__(self, c, *args):
+        self.args = [ c(x) for x in args ]    
+    
+    def __eq__(self, y):
+        return any([ x == y for x in args ])
+    
+    def __ne__(self, y):
+        return any([ x != y for x in args ])    
+    
+    def __gt__(self, y):
+        return any([ x > y for x in args ])
+
+    def __lt__(self, y):
+        return any([ x < y for x in args ])
+    
+    def __ge__(self, y):
+        return any([ x >= y for x in args ])
+    
+    def __le__(self, y):
+        return any([ x <= y for x in args ])    
+        
+    
+
         
 if __name__ == "__main__":         
     campyon = Campyon(*sys.argv[1:])
