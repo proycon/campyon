@@ -153,6 +153,9 @@ class CampyonViewer(object):
                         types[i] = float
                     elif isinstance(field, str) or isinstance(field, unicode):
                         types[i] = str
+        if c.numberlines:
+            types.insert(0,int)
+                        
                 
         print repr(types)
                 
@@ -165,6 +168,10 @@ class CampyonViewer(object):
         # create the TreeViewColumns to display the data
         self.columns = []
         self.cellrenderers = []
+        if c.numberlines:
+                self.columns.append( gtk.TreeViewColumn('#') )
+                self.cellrenderers.append( gtk.CellRendererText() )
+                
         if c.DOHEADER:
             for colname in c.headerfields():
                 self.columns.append( gtk.TreeViewColumn(colname) )
@@ -177,6 +184,8 @@ class CampyonViewer(object):
         #add data
         first = True
         for line, fields, linenum in c.processmemory(): 
+            if c.numberlines: 
+                fields = [linenum] + fields
             if (c.DOHEADER and not first) or not c.DOHEADER:             
                 self.liststore.append(fields)
             first = False
