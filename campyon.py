@@ -514,25 +514,26 @@ class Campyon(object):
                 
             if self.DOSTATS and not isheader:                    
                 for i,field in enumerate(fields):
-                    if not i in self.nostats: 
+                    fieldnum = i+1
+                    if not fieldnum in self.nostats: 
                         if '.' in field:
                             try:
                                x = float(field)
                             except:
-                               self.nostats.add(i+1)
-                               if i in self.sumdata: del self.sumdata[i+16]
+                               self.nostats.add(fieldnum)
+                               if fieldnum in self.sumdata: del self.sumdata[fieldnum]
                                continue
                         else:
                             try:
                                x = int(field)
                             except:
-                               self.nostats.add(i+1)
-                               if i in self.sumdata: del self.sumdata[i+1]
+                               self.nostats.add(fieldnum)
+                               if fieldnum in self.sumdata: del self.sumdata[fieldnum]
                                continue                        
                      
-                        if not i in self.sumdata:
-                            self.sumdata[i+1] = 0
-                        self.sumdata[i+1] += x
+                        if not fieldnum in self.sumdata:
+                            self.sumdata[fieldnum] = 0
+                        self.sumdata[fieldnum] += x
                          
                 
             
@@ -661,12 +662,12 @@ class Campyon(object):
         return [x[1] for x in sorted(self.header.items()) ]
         
     def printstats(self, out=sys.stderr):            
+        out.write("COLUMN\tSUM\tAVERAGE\n")
         for colnum, colname, s, average in self.stats():
             if colname == str(colnum): 
-                colname == ""
+                out.write(str(colnum) + "\t"+ str(s) + "\t" + str(average) + "\n")
             else:
-                colname = '-' + colname
-            out.write("column #" + str(colnum) + colname.encode(self.encoding) + " sum="+ str(s) + "\taverage=" + str(average) + "\n")
+                out.write(colname.encode(self.encoding) + "\t"+ str(s) + "\t" + str(average) + "\n")                
             
     def stats(self):
         for i in sorted(self.sumdata):
@@ -679,8 +680,8 @@ class Campyon(object):
                          
      
     def printhist(self, columnindex, out=sys.stderr):         
-        for i, (word, count, f) in self.histdata(columnindex):
-            print >>sys.stderr, str(i) + ")\t" + word.encode(self.encoding) + "\t" + str(count) + "\t" + str(f * 100) + '%'
+        for i, (word, count, f) in enumerate(self.histdata(columnindex)):
+            print >>sys.stderr, str(i+1) + ")\t" + word.encode(self.encoding) + "\t" + str(count) + "\t" + str(f * 100) + '%'
         
     def entropy(self, columnindex):        
         return calcentropy(self.freq[columnindex])
