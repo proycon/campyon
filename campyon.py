@@ -163,8 +163,8 @@ class CampyonViewer(object):
                 self.columns.append( gtk.TreeViewColumn(colname) )
                 self.cellrenderers.append( gtk.CellRendererText() ) 
         else:
-            for num in len(types):
-                self.columns.append( gtk.TreeViewColumn(str(num+1)) )
+            for num in range(1,len(types)+1):
+                self.columns.append( gtk.TreeViewColumn(str(num)) )
                 self.cellrenderers.append( gtk.CellRendererText() ) 
 
         #add data
