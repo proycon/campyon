@@ -60,8 +60,9 @@ def usage():
     
     print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
     print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
-    print >>sys.stderr," -v               Pretty view output, replaces tabs with spaces to nicely align columns"
+    print >>sys.stderr," -v               Pretty view output, replaces tabs with spaces to nicely align columns. You may want to combine this with -n and --nl, and perhaps -N"
     print >>sys.stderr," --copysuffix=[suffix]       Output an output file with specified suffix for each inputfile (use instead of -o or -i)"
+    print >>sys.stderr," --nl             Insert an extra empty newline after each line"
     print >>sys.stderr,"Options to be implemented still:"
     print >>sys.stderr," -X [samplesizes] Draw one or more random samples (non overlapping, comma separated list of sample sizes)"
     print >>sys.stderr," -a [column]=[columname]=[expression]   Adds a new column after the specified column"
@@ -145,7 +146,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:v",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix="])
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:v",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix=","nl"])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -181,6 +182,7 @@ class Campyon(object):
         self.plottitle = self._parsekwargs('plottitle',"",kwargs)
         
         self.prettyview = False
+        self.extranewline = False
         
         self.fieldcount = 0
         self.header =  {}
@@ -257,6 +259,8 @@ class Campyon(object):
                 self.plotconf = self._parsekwargs('plotconf',['ro ','go ','bo ','yo ','mo ','co '],kwargs)
             elif o == '--copysuffix':
                 self.copysuffix = a
+            elif o == '--nl':
+                self.extranewline = True
             elif o == '-a':
                 raise NotImplementedError
             else:
@@ -275,7 +279,7 @@ class Campyon(object):
                 sys.exit(2)
  
            
-        if self.sort or self.prettyview:
+        if self.sort or self.sortsettings or self.prettyview:
             self.inmemory = True
 
         
@@ -347,7 +351,7 @@ class Campyon(object):
                     
         if not self.overwriteinput and not self.copysuffix:                    
             self.init(self.filenames[0]) #initialise one, assume same column config for all!
-                    
+
         for filename in self.filenames:
 
             if self.overwriteinput or self.copysuffix:                
@@ -391,7 +395,7 @@ class Campyon(object):
                         print
                          
             if f_out and (self.overwriteinput or self.copysuffix):
-                if self.inmemory:
+                if self.inmemory:                    
                     for line, fields, linenum in self.processmemory():                                          
                         if self.numberlines: f_out.write(str(linenum) + self.delimiter)
                         f_out.write(line + "\n")                           
@@ -400,8 +404,7 @@ class Campyon(object):
                 if self.overwriteinput:
                     os.rename(filename+".tmp",filename)
                 
-
-        if self.inmemory and not self.overwriteinput and not self.copysuffix:
+        if self.inmemory and not self.overwriteinput and not self.copysuffix:            
             for line, fields, linenum in self.processmemory():
                 if f_out:                                          
                     if self.numberlines: f_out.write(str(linenum) + self.delimiter)
@@ -574,8 +577,9 @@ class Campyon(object):
                     newfields.append(field)
                     
             s = self.delimiter.join([ unicode(x) for x in newfields ])            
-            if self.inmemory and not isheader:
-                self.memory.append( (newfields, self.rowcount_out) )
+            if self.inmemory:
+                if not isheader:
+                    self.memory.append( (newfields, self.rowcount_out) )
             else:                
                 yield s, newfields, self.rowcount_out
 
