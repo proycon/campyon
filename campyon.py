@@ -679,7 +679,7 @@ class Campyon(object):
                 for fieldnum in self.hist:
                     if not fieldnum in self.freq:                
                         self.freq[fieldnum] = {}
-                    if not fields[fieldnum] in self.freq:
+                    if not fields[fieldnum] in self.freq[fieldnum]:
                         self.freq[fieldnum][fields[fieldnum]] = 0
                     self.freq[fieldnum][fields[fieldnum]] += 1
                 
