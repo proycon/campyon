@@ -120,13 +120,20 @@ class CampyonViewer(object):
 
     def __init__(self, c, filename):
         # Create a new window
-        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window = gtk.Dialog() #gtk.WINDOW_TOPLEVEL)
 
         self.window.set_title(filename)
-
+        self.window.set_border_width(0)
+        self.window.set_size_request(640, 480)
+        
         #self.window.set_size_request(640, 480)
 
         self.window.connect("delete_event", self.delete_event)
+        
+        self.scrollwindow = gtk.ScrolledWindow()
+        self.scrollwindow.set_border_width(0)
+        self.scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+        self.scrollwindow.show()
 
         types = []
         first = True
@@ -158,7 +165,7 @@ class CampyonViewer(object):
         # create the TreeViewColumns to display the data
         self.columns = []
         self.cellrenderers = []
-        if c.header:
+        if c.DOHEADER:
             for colname in c.headerfields():
                 self.columns.append( gtk.TreeViewColumn(colname) )
                 self.cellrenderers.append( gtk.CellRendererText() ) 
@@ -170,7 +177,7 @@ class CampyonViewer(object):
         #add data
         first = True
         for line, fields, linenum in c.processmemory(): 
-            if not first and c.header:             
+            if (c.DOHEADER and not first) or not c.DOHEADER:             
                 self.liststore.append(fields)
             first = False
 
@@ -209,8 +216,13 @@ class CampyonViewer(object):
         # Allow drag and drop reordering of rows
         self.treeview.set_reorderable(True)
 
-        self.window.add(self.treeview)
+        self.scrollwindow.add_with_viewport(self.treeview)
 
+        #self.window.add(self.treeview)
+        
+        self.window.vbox.pack_start(self.scrollwindow, True, True, 0)
+        
+        self.scrollwindow.show_all()
         self.window.show_all()
 
 
@@ -482,6 +494,45 @@ class Campyon(object):
                     if self.numberlines: print green(str(linenum)) + self.delimiter,
                     print line.encode(self.encoding)
         
+            if self.overwriteinput or self.copysuffix:             
+                if self.prettyview:
+                    margin = 2
+                    colsize = {}
+                    for line, fields, linenum in self.processmemory():                    
+                        for i,field in enumerate(fields):
+                            if not i in colsize:
+                                colsize[i] = 0
+                            if len(unicode(field))+margin > colsize[i]:
+                                colsize[i] = len(unicode(field))+margin
+                    for line, fields, linenum in self.processmemory():                                                        
+                        for field in fields:
+                            spaces = " " * (colsize[i] - len(unicode(field)))
+                            if f_out:
+                                f_out.write(unicode(field) + spaces)
+                            else:
+                                print unicode(field).encode(self.encoding) + spaces,
+                        if f_out:
+                            f_out.write("\n")
+                        else:
+                            print
+                elif self.guiview: 
+                    v = CampyonViewer(self, filename)
+                    gtk.main()
+                    del v
+                    
+                                     
+            if f_out and (self.overwriteinput or self.copysuffix):
+                if self.inmemory and not self.prettyview and not self.guiview:                    
+                    for line, fields, linenum in self.processmemory():                                          
+                        if self.numberlines: f_out.write(str(linenum) + self.delimiter)
+                        f_out.write(line + "\n")                           
+                f_out.close()
+                f_out = None
+                if self.overwriteinput:
+                    os.rename(filename+".tmp",filename)
+                
+        if self.inmemory and not self.overwriteinput and not self.copysuffix:            
+            
             if self.prettyview:
                 margin = 2
                 colsize = {}
@@ -506,26 +557,14 @@ class Campyon(object):
                 v = CampyonViewer(self, filename)
                 gtk.main()
                 del v
-                
-                                     
-            if f_out and (self.overwriteinput or self.copysuffix):
-                if self.inmemory:                    
-                    for line, fields, linenum in self.processmemory():                                          
+            else:            
+                for line, fields, linenum in self.processmemory():
+                    if f_out:                                          
                         if self.numberlines: f_out.write(str(linenum) + self.delimiter)
-                        f_out.write(line + "\n")                           
-                f_out.close()
-                f_out = None
-                if self.overwriteinput:
-                    os.rename(filename+".tmp",filename)
-                
-        if self.inmemory and not self.overwriteinput and not self.copysuffix:            
-            for line, fields, linenum in self.processmemory():
-                if f_out:                                          
-                    if self.numberlines: f_out.write(str(linenum) + self.delimiter)
-                    f_out.write(line + "\n")
-                else:
-                    if self.numberlines: print green(str(linenum)) + self.delimiter,
-                    print line.encode(self.encoding)            
+                        f_out.write(line + "\n")
+                    else:
+                        if self.numberlines: print green(str(linenum)) + self.delimiter,
+                        print line.encode(self.encoding)            
               
         if f_out:
             f_out.close()        
