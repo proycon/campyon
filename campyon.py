@@ -67,6 +67,8 @@ def usage():
     print >>sys.stderr," -V               Pretty view output in a GUI"    
     print >>sys.stderr," --copysuffix=[suffix]       Output an output file with specified suffix for each inputfile (use instead of -o or -i)"
     print >>sys.stderr," --nl             Insert an extra empty newline after each line"
+    print >>sys.stderr," --html           Output HTML table"
+    print >>sys.stderr," --latex          Output LaTeX tabular"
     print >>sys.stderr,"Selection shortcuts:"
     print >>sys.stderr," -g [key]         Does a grep. Shortcut for: -s 'A() == \"key\"'"
     print >>sys.stderr," -G [key]         Does an inverse grep. Shortcut for: -s 'not (A() == \"key\"')"        
@@ -296,7 +298,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:vVg:G:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix=","nl"])
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:vVg:G:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix=","nl","html","latex"])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -334,6 +336,8 @@ class Campyon(object):
         self.prettyview = False
         self.extranewline = False
         self.guiview = False
+        self.html = False
+        self.latex = False
         
         self.fieldcount = 0
         self.header =  {}
@@ -735,10 +739,10 @@ class Campyon(object):
                 if fieldnum in self.highlight and not self.guiview:
                     field = bold(red(field))                
                 if self.numberfields:
-                    if not self.guiview:
-                        field = str(i) + '=' + field
+                    if self.guiview:
+                        field = str(fieldnum) + '=' + field
                     else:
-                        field = magenta(str(i)) + '=' + field
+                        field = magenta(str(fieldnum)) + '=' + field
                 else:                
                     if field.isdigit() or field[0] == '-' and field[1:].isdigit():
                         field = int(field)
@@ -921,7 +925,7 @@ class ConjunctionSelector(object):
         return all([ x <= y for x in self.args ])    
     
     def __contains__(self, y):
-        return all([ x in y for x in self.args ])
+        return all([ x in y for x in self.args ])    
     
 class DisjunctionSelector(object):
     def __init__(self, c, *args):
