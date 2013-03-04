@@ -487,7 +487,7 @@ class Campyon(object):
                 if self.DOHEADER:
                     self.header = dict([ (x+1,y) for x,y in enumerate(fields) ])
                     for col, name in self.header.items():
-                        print >>sys.stderr,"Column #1:", name.encode('utf-8')
+                        print >>sys.stderr,"Column #"+str(col)+":", name.encode('utf-8')
                 break            
         f.close()
         
