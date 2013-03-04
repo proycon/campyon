@@ -485,7 +485,7 @@ class Campyon(object):
                 self.fieldcount = len(fields)
                 print >>sys.stderr,"Number of fields: ", self.fieldcount
                 if self.DOHEADER:
-                    self.header = dict([ (x+1,y) for x,y in enumerate(fields) ])
+                    self.header = dict([ (x+1,y.strip()) for x,y in enumerate(fields) ])
                     for col, name in self.header.items():
                         print >>sys.stderr,"Column #"+str(col)+":", name.encode('utf-8')
                 break            
