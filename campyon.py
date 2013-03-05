@@ -699,9 +699,9 @@ class Campyon(object):
                 for fieldnum in self.hist:
                     if not fieldnum in self.freq:                
                         self.freq[fieldnum] = {}
-                    if not fields[fieldnum] in self.freq[fieldnum]:
-                        self.freq[fieldnum][fields[fieldnum]] = 0
-                    self.freq[fieldnum][fields[fieldnum]] += 1
+                    if not fields[fieldnum-1] in self.freq[fieldnum]:
+                        self.freq[fieldnum][fields[fieldnum-1]] = 0
+                    self.freq[fieldnum][fields[fieldnum-1]] += 1
                 
             if self.DOSTATS and not isheader:                    
                 for i,field in enumerate(fields):
