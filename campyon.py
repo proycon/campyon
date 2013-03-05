@@ -684,7 +684,7 @@ class Campyon(object):
         
             
             if self.select and not isheader:
-                c = lambda x: fields[self.parsecolumnindex(x)-1]
+                c = lambda x: fields[self.parsecolumnindex(x)-1].strip()
                 C = lambda x: ConjunctionSelector(c, *x)
                 D = lambda x: DisjunctionSelector(c, *x)  
                 r = lambda x,y: re.search(x,c(y))
