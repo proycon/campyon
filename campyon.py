@@ -63,7 +63,7 @@ def usage():
     
     print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
     print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
-    print >>sys.stderr," -R               Reverse axes (implies -1)"
+    print >>sys.stderr," -R               Reverse axes (during input) (implies -1)"
     print >>sys.stderr," -v               Pretty view output, replaces tabs with spaces to nicely align columns. You may want to combine this with -n and --nl, and perhaps -N"
     print >>sys.stderr," -V               Pretty view output in a GUI"    
     print >>sys.stderr," --copysuffix=[suffix]       Output an output file with specified suffix for each inputfile (use instead of -o or -i)"
@@ -668,7 +668,7 @@ class Campyon(object):
             for x, line in enumerate(f):
                 fields = line.strip().split(self.delimiter)
                 for y in enumerate(fields):
-                    if not x in fields[y]: fields[y] = {}
+                    if not y in tmp: tmp[y] = {}
                     tmp[y][x] = fields[y]                
             f.close()
             try:
