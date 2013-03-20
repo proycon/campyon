@@ -802,6 +802,7 @@ class Campyon(object):
                         newfields.append(fields[i])
                     tmp.append( ( newfields, i+1) )
                 self.memory = tmp
+                self.header = False
             except KeyError:   
                 raise CampyonError("Unable to reverse axes, dimensions not square")                     
                           
