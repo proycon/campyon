@@ -667,9 +667,9 @@ class Campyon(object):
             tmp = {}
             for x, line in enumerate(f):
                 fields = line.strip().split(self.delimiter)
-                for y in enumerate(fields):
+                for y, field in enumerate(fields):
                     if not y in tmp: tmp[y] = {}
-                    tmp[y][x] = fields[y]                
+                    tmp[y][x] = field          
             f.close()
             try:
                 f = [ self.delimiter.join([ tmp[x][y] for y in sorted(tmp[x]) ]) for x in tmp ]
