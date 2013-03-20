@@ -63,6 +63,7 @@ def usage():
     
     print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
     print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
+    print >>sys.stderr," -R               Reverse axes (implies -1)"
     print >>sys.stderr," -v               Pretty view output, replaces tabs with spaces to nicely align columns. You may want to combine this with -n and --nl, and perhaps -N"
     print >>sys.stderr," -V               Pretty view output in a GUI"    
     print >>sys.stderr," --copysuffix=[suffix]       Output an output file with specified suffix for each inputfile (use instead of -o or -i)"
@@ -298,7 +299,7 @@ class Campyon(object):
     
     def __init__(self, *args, **kwargs):
         try:
-	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:vVg:G:",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix=","nl","html","latex"])
+	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:vVg:G:R",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix=","nl","html","latex"])
         except getopt.GetoptError, err:
 	        # print help information and exit:
 	        print str(err)
@@ -339,12 +340,15 @@ class Campyon(object):
         self.html = False
         self.latex = False
         
+        
+        
         self.fieldcount = 0
         self.header =  {}
         self.sortreverse = False
         self.inmemory = False
         self.xs = []
-        self.ys = {}        
+        self.ys = {}
+        self.reverseaxes = False        
         
         self.keepsettings = ""
         self.deletesettings = ""
@@ -421,7 +425,9 @@ class Campyon(object):
             elif o == '-g':
                 self.select = 'A() == "' + a.replace('"','\\"') + '"'
             elif o == '-G':
-                self.select = 'not (A() == "' + a.replace('"','\\"') + '")'                
+                self.select = 'not (A() == "' + a.replace('"','\\"') + '")'
+            elif o == '-R':                
+                self.reverseaxes = True
             elif o == '-a':
                 raise NotImplementedError
             else:
@@ -656,6 +662,19 @@ class Campyon(object):
 
         if isinstance(f, str) or isinstance(f, unicode):                           
             f = codecs.open(f,'r',self.encoding)
+
+        if self.reverseaxes:
+            tmp = {}
+            for x, line in enumerate(f):
+                fields = line.strip().split(self.delimiter)
+                for y in enumerate(fields):
+                    if not x in fields[y]: fields[y] = {}
+                    tmp[y][x] = fields[y]                
+            f.close()
+            try:
+                f = [ self.delimiter.join([ tmp[x][y] for y in sorted(tmp[x]) ]) for x in tmp ]
+            except KeyError:   
+                raise CampyonError("Unable to reverse axes, dimensions not square")                                
             
         for line in f:
             if not isinstance(line, unicode):
