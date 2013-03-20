@@ -428,6 +428,7 @@ class Campyon(object):
                 self.select = 'not (A() == "' + a.replace('"','\\"') + '")'
             elif o == '-R':                
                 self.reverseaxes = True
+                self.inmemory = True
             elif o == '-a':
                 raise NotImplementedError
             else:
@@ -781,7 +782,7 @@ class Campyon(object):
                     
             s = self.delimiter.join([ unicode(x) for x in newfields ])            
             if self.inmemory:
-                if not isheader:
+                if not isheader or self.reverseaxes:
                     self.memory.append( (newfields, self.rowcount_out) )
             else:                
                 yield s, newfields, self.rowcount_out
@@ -794,7 +795,13 @@ class Campyon(object):
            self.memory = sorted(self.memory, key=lambda x: tuple([ x[0][i-1] for i in self.sort ]), reverse=self.sortreverse)
         elif self.reverseaxes:
             try:
-                self.memory = [ self.delimiter.join([ self.memory[x][y] for y in sorted(self.memory[x]) ]) for x in self.memory ]                                    
+                tmp = []
+                for i in range(0,self.fieldcount):
+                    newfields = []
+                    for fields, linenum in self.memory:
+                        newfields.append(fields[i])
+                    tmp.append( ( newfields, i+1) )
+                self.memory = tmp
             except KeyError:   
                 raise CampyonError("Unable to reverse axes, dimensions not square")                     
                           
