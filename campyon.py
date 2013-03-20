@@ -63,7 +63,7 @@ def usage():
     
     print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
     print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
-    print >>sys.stderr," -R               Reverse axes (during input) (implies -1)"
+    print >>sys.stderr," -R               Reverse axes on output"
     print >>sys.stderr," -v               Pretty view output, replaces tabs with spaces to nicely align columns. You may want to combine this with -n and --nl, and perhaps -N"
     print >>sys.stderr," -V               Pretty view output in a GUI"    
     print >>sys.stderr," --copysuffix=[suffix]       Output an output file with specified suffix for each inputfile (use instead of -o or -i)"
@@ -663,18 +663,7 @@ class Campyon(object):
         if isinstance(f, str) or isinstance(f, unicode):                           
             f = codecs.open(f,'r',self.encoding)
 
-        if self.reverseaxes:
-            tmp = {}
-            for x, line in enumerate(f):
-                fields = line.strip().split(self.delimiter)
-                for y, field in enumerate(fields):
-                    if not y in tmp: tmp[y] = {}
-                    tmp[y][x] = field          
-            f.close()
-            try:
-                f = [ self.delimiter.join([ tmp[x][y] for y in sorted(tmp[x]) ]) for x in tmp ]
-            except KeyError:   
-                raise CampyonError("Unable to reverse axes, dimensions not square")                                
+                      
             
         for line in f:
             if not isinstance(line, unicode):
@@ -803,6 +792,11 @@ class Campyon(object):
     def processmemory(self):    
         if self.sort:
            self.memory = sorted(self.memory, key=lambda x: tuple([ x[0][i-1] for i in self.sort ]), reverse=self.sortreverse)
+        elif self.reverseaxes:
+            try:
+                self.memory = [ self.delimiter.join([ self.memory[x][y] for y in sorted(self.memory[x]) ]) for x in self.memory ]                                    
+            except KeyError:   
+                raise CampyonError("Unable to reverse axes, dimensions not square")                     
                           
         if self.header:    
             s = self.delimiter.join( self.headerfields()  )
