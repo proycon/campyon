@@ -10,7 +10,7 @@
 #
 #       Centre for Language Studies
 #       Radboud University Nijmegen
-#       
+#
 #       Licensed under GPLv3
 #
 # Campyon is a command-line tool and Python library for viewing and manipulating columned data files.
@@ -23,7 +23,7 @@ import sys
 import codecs
 import getopt
 import os
-import math 
+import math
 import re
 
 
@@ -59,24 +59,24 @@ def usage():
     print >>sys.stderr," -M [columns]     Mark/highlight columns"
     print >>sys.stderr," -1               First line is a header line, containing names of the columns"
     print >>sys.stderr," -y [columns]     Plot columns (use with -x)"
-    print >>sys.stderr," -x [column]      Plot as a function of the specified column (use with -y)"  
-    
+    print >>sys.stderr," -x [column]      Plot as a function of the specified column (use with -y)"
+
     print >>sys.stderr," -A [columns]     Sort by columns, in ascending order"
     print >>sys.stderr," -Z [columns]     Sort by columns, in descending order"
     print >>sys.stderr," -R               Reverse axes on output"
     print >>sys.stderr," -v               Pretty view output, replaces tabs with spaces to nicely align columns. You may want to combine this with -n and --nl, and perhaps -N"
-    print >>sys.stderr," -V               Pretty view output in a GUI"    
+    print >>sys.stderr," -V               Pretty view output in a GUI"
     print >>sys.stderr," --copysuffix=[suffix]       Output an output file with specified suffix for each inputfile (use instead of -o or -i)"
     print >>sys.stderr," --nl             Insert an extra empty newline after each line"
     print >>sys.stderr," --html           Output HTML table"
     print >>sys.stderr," --latex          Output LaTeX tabular"
     print >>sys.stderr,"Selection shortcuts:"
     print >>sys.stderr," -g [key]         Does a grep. Shortcut for: -s 'A() == \"key\"'"
-    print >>sys.stderr," -G [key]         Does an inverse grep. Shortcut for: -s 'not (A() == \"key\"')"        
+    print >>sys.stderr," -G [key]         Does an inverse grep. Shortcut for: -s 'not (A() == \"key\"')"
     print >>sys.stderr,"Options to be implemented still:"
     print >>sys.stderr," -X [samplesizes] Draw one or more random samples (non overlapping, comma separated list of sample sizes)"
     print >>sys.stderr," -a [column]=[columname]=[expression]   Adds a new column after the specified column"
-    print >>sys.stderr," -J [sourcekey]:[filename]:[targetkey]:[selecttargetcolumns]:[insertafter]   Joins another data set with this one, on a specified column"  
+    print >>sys.stderr," -J [sourcekey]:[filename]:[targetkey]:[selecttargetcolumns]:[insertafter]   Joins another data set with this one, on a specified column"
     print >>sys.stderr,"Column specification:"
     print >>sys.stderr," A comma separated list of column index numbers or column names (if -1 option is used). Column index numbers start with 1. Negative numbers may be used for end-aligned-indices, where -1 is the last column. Ranges may be specified using a colon, for instance: 3:6 equals 3,4,5,6. A selection like 3:-1 select the third up to the last column. A specification like ID,NAME selects the columns names as such."
     print >>sys.stderr,"Selector specification:"
@@ -87,8 +87,8 @@ def usage():
     print >>sys.stderr,"    D((n,n....))   Match disjunction of multiple columns. An expression like   D((1,2)) > 4  is the same as: c(1) > 4 or c(2) > 4 . Names instead of numbers are also allowed. Note the double parentheses."
     print >>sys.stderr,"    A()            Any field, applies a disjunction over all columns."
     print >>sys.stderr,"    r('REGEXP',n)  Apply regular expression on column n, uses standard python re.search(). Also:"
-    print >>sys.stderr,"    r('REGEXP','NAME')"     
-    print >>sys.stderr," The selection specification (-s) is normal python code and thus allows for a great deal of flexibility. The following functions are available in this context:"    
+    print >>sys.stderr,"    r('REGEXP','NAME')"
+    print >>sys.stderr," The selection specification (-s) is normal python code and thus allows for a great deal of flexibility. The following functions are available in this context:"
     print >>sys.stderr,"Plot options:"
     print >>sys.stderr," --plotgrid       Draw grid"
     print >>sys.stderr," --plotxlog       X scale is logarithmic"
@@ -96,32 +96,32 @@ def usage():
     print >>sys.stderr," --plotfile=[filename]      Save plot to PNG file"
     print >>sys.stderr," --lineplot       Sets lineplot defaults"
     print >>sys.stderr," --scatterplot    Sets scatterplot defaults"
-            
+
 def bold(s):
     CSI="\x1B["
     return CSI+"1m" + s + CSI + "0m"
 
 def red(s):
     CSI="\x1B["
-    return CSI+"31m" + s + CSI + "0m"  
+    return CSI+"31m" + s + CSI + "0m"
 
 def green(s):
     CSI="\x1B["
-    return CSI+"32m" + s + CSI + "0m"   
+    return CSI+"32m" + s + CSI + "0m"
 
 
 def magenta(s):
     CSI="\x1B["
-    return CSI+"35m" + s + CSI + "0m"   
+    return CSI+"35m" + s + CSI + "0m"
 
 def calcentropy(d, base = 2):
       """Compute the entropy of the distribution"""
       entropy = 0
       for type in d:
          if not base:
-             entropy += d[type] * -math.log(d[type])     
+             entropy += d[type] * -math.log(d[type])
          else:
-             entropy += d[type] * -math.log(d[type], base)     
+             entropy += d[type] * -math.log(d[type], base)
       return entropy
 
 
@@ -142,11 +142,11 @@ class CampyonViewer(object):
         self.window.set_title(filename)
         self.window.set_border_width(0)
         self.window.set_size_request(640, 480)
-        
+
         #self.window.set_size_request(640, 480)
 
         self.window.connect("delete_event", self.delete_event)
-        
+
         self.scrollwindow = gtk.ScrolledWindow()
         self.scrollwindow.set_border_width(0)
         self.scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
@@ -154,15 +154,15 @@ class CampyonViewer(object):
 
         types = []
         first = True
-        for line, fields, linenum in c.processmemory():  
+        for line, fields, linenum in c.processmemory():
             if first:
-                for field in fields:      
+                for field in fields:
                     if isinstance(field, float):
                         types.append(float)
                     elif isinstance(field, int):
                         types.append(int)
-                    else:                        
-                        types.append(str)                        
+                    else:
+                        types.append(str)
                 first = False
             else:
                 for i, field in enumerate(fields):
@@ -172,10 +172,10 @@ class CampyonViewer(object):
                         types[i] = str
         if c.numberlines:
             types.insert(0,int)
-                        
-                
+
+
         print repr(types)
-                
+
         # create a liststore with one string column to use as the model
         self.liststore = gtk.ListStore(*types) #(str, str, str, 'gboolean')
 
@@ -188,22 +188,22 @@ class CampyonViewer(object):
         if c.numberlines:
                 self.columns.append( gtk.TreeViewColumn('#') )
                 self.cellrenderers.append( gtk.CellRendererText() )
-                
+
         if c.DOHEADER:
             for colname in c.headerfields():
                 self.columns.append( gtk.TreeViewColumn(colname) )
-                self.cellrenderers.append( gtk.CellRendererText() ) 
+                self.cellrenderers.append( gtk.CellRendererText() )
         else:
             for num in range(1,len(types)+1):
                 self.columns.append( gtk.TreeViewColumn(str(num)) )
-                self.cellrenderers.append( gtk.CellRendererText() ) 
+                self.cellrenderers.append( gtk.CellRendererText() )
 
         #add data
         first = True
-        for line, fields, linenum in c.processmemory(): 
-            if c.numberlines: 
+        for line, fields, linenum in c.processmemory():
+            if c.numberlines:
                 fields = [linenum] + fields
-            if (c.DOHEADER and not first) or not c.DOHEADER:             
+            if (c.DOHEADER and not first) or not c.DOHEADER:
                 self.liststore.append(fields)
             first = False
 
@@ -212,9 +212,9 @@ class CampyonViewer(object):
             self.treeview.append_column(col)
 
         # create a CellRenderers to render the data
-        
-     
-        
+
+
+
 
         # set background color property
         #self.cellpb.set_property('cell-background', 'yellow')
@@ -230,13 +230,13 @@ class CampyonViewer(object):
         #self.cell1.set_property('cell-background', 'pink')
 
 
-        
 
-            
+
+
 
         # set the cell attributes to the appropriate liststore column
         for i, (col, cr) in enumerate(zip(self.columns, self.cellrenderers)):
-            col.pack_start(cr, True)         # add the cells to the columns 
+            col.pack_start(cr, True)         # add the cells to the columns
             col.set_attributes(cr,text=i)
             col.set_sort_column_id(i)
 
@@ -252,9 +252,9 @@ class CampyonViewer(object):
         self.scrollwindow.add_with_viewport(self.treeview)
 
         #self.window.add(self.treeview)
-        
+
         self.window.vbox.pack_start(self.scrollwindow, True, True, 0)
-        
+
         self.scrollwindow.show_all()
         self.window.show_all()
 
@@ -265,7 +265,7 @@ class Campyon(object):
             return kwargs[key]
         else:
             return default
-    
+
     def parsecolumnindex(self, s):
         if isinstance(s,int):
             return s
@@ -275,7 +275,7 @@ class Campyon(object):
             return int(s)
         else:
             return self.indexbyname(s)
-        
+
     def parsecolumns(self, settings):
         assert self.fieldcount > 0
         l = []
@@ -283,20 +283,20 @@ class Campyon(object):
             if ':' in x:
                 low,high = [ y for y in x.split(':') ]
                 low = self.parsecolumnindex(low)
-                high = self.parsecolumnindex(high) 
+                high = self.parsecolumnindex(high)
                 for i in range(low, high + 1):
-                    if i > self.fieldcount:  
+                    if i > self.fieldcount:
                         print >>sys.stderr, "ERROR: Specified column " + str(i) + " is out of range"
                         sys.exit(4)
                     l.append(i)
             else:
                 x = self.parsecolumnindex(x)
-                if x > self.fieldcount:  
+                if x > self.fieldcount:
                     print >>sys.stderr, "ERROR: Specified column " + str(x) + " is out of range"
                     sys.exit(4)
                 l.append(x)
-        return l    
-    
+        return l
+
     def __init__(self, *args, **kwargs):
         try:
 	        opts, args = getopt.getopt(args, "f:k:d:e:D:o:is:SH:TC:nNM:1x:y:A:Z:a:vVg:G:R",["bar","plotgrid","plotxlog","plotylog","plotconf=","plotfile=","scatterplot","lineplot","plottitle","copysuffix=","nl","html","latex"])
@@ -304,8 +304,8 @@ class Campyon(object):
 	        # print help information and exit:
 	        print str(err)
 	        usage()
-	        sys.exit(2)           
-        
+	        sys.exit(2)
+
         self.filenames = self._parsekwargs('filenames',"",kwargs)
         self.encoding = self._parsekwargs('encoding',"utf-8",kwargs)
         self.delete = self._parsekwargs('delete',[],kwargs)
@@ -326,30 +326,30 @@ class Campyon(object):
         self.y = self._parsekwargs('y',[],kwargs)
 
         self.copysuffix = self._parsekwargs('copysuffix',"",kwargs)
-        
+
         self.plotgrid = self._parsekwargs('plotgrid',False,kwargs)
         self.plotxlog = self._parsekwargs('plotxlog',False,kwargs)
         self.plotylog = self._parsekwargs('plotylog',False,kwargs)
         self.plotconf = self._parsekwargs('plotconf',['r.-','g.-','b.-','y.-','m.-','c.-'],kwargs)
         self.plotfile = self._parsekwargs('plotfile',"",kwargs)
         self.plottitle = self._parsekwargs('plottitle',"",kwargs)
-        
+
         self.prettyview = False
         self.extranewline = False
         self.guiview = False
         self.html = False
         self.latex = False
-        
-        
-        
+
+
+
         self.fieldcount = 0
         self.header =  {}
         self.sortreverse = False
         self.inmemory = False
         self.xs = []
         self.ys = {}
-        self.reverseaxes = False        
-        
+        self.reverseaxes = False
+
         self.keepsettings = ""
         self.deletesettings = ""
         self.histsettings = ""
@@ -357,19 +357,19 @@ class Campyon(object):
         self.sortsettings = ""
         self.plotxsettings = ""
         self.plotysettings = ""
-    
+
         for o, a in opts:
-            if o == "-e":	
+            if o == "-e":
                 self.encoding = a
-            elif o == "-f":	
-                self.filenames = [a]              
-            elif o == "-k":	
+            elif o == "-f":
+                self.filenames = [a]
+            elif o == "-k":
                 self.keepsettings = a
-            elif o == "-d":	
-                self.deletesettings = a      
+            elif o == "-d":
+                self.deletesettings = a
             elif o == '-D':
                 self.delimiter = a
-            elif o == '-o':    
+            elif o == '-o':
                 self.outputfile = a
             elif o == '-s':
                 self.select = a
@@ -378,7 +378,7 @@ class Campyon(object):
             elif o == '-S':
                 self.DOSTATS = True
             elif o == '-H':
-                self.histsettings = a 
+                self.histsettings = a
             elif o == '-T':
                 self.delimiter = "\t"
             elif o == '-C':
@@ -386,8 +386,8 @@ class Campyon(object):
             elif o == '-n':
                 self.numberlines = True
             elif o == '-N':
-                self.numberfields = True        
-            elif o == '-M':    
+                self.numberfields = True
+            elif o == '-M':
                 self.highlightsettings = a
             elif o == '-1':
                 self.DOHEADER = True
@@ -395,24 +395,24 @@ class Campyon(object):
                 self.sortsettings = a
             elif o == '-Z':
                 self.sortsettings = a
-                self.sortreverse = True     
-            elif o == '-x':           
-                self.plotxsettings = a                
-            elif o == '-y':           
+                self.sortreverse = True
+            elif o == '-x':
+                self.plotxsettings = a
+            elif o == '-y':
                 self.plotysettings = a
-            elif o == '-v':           
+            elif o == '-v':
                 self.prettyview = True
             elif o == '-V':
                 self.guiview = True
-            elif o == '--plotgrid':     
+            elif o == '--plotgrid':
                 self.plotgrid = True
-            elif o == '--plotxlog':     
-                self.plotxlog = True                
-            elif o == '--plotylog':     
+            elif o == '--plotxlog':
+                self.plotxlog = True
+            elif o == '--plotylog':
                 self.plotylog = True
-            elif o == '--plotconf':     
+            elif o == '--plotconf':
                 self.plotconf = a.split(',')
-            elif o == '--plotfile':     
+            elif o == '--plotfile':
                 self.plotfile = a
             elif o == "--lineplot":
                 self.plotconf = self._parsekwargs('plotconf',['r-','g-','b-','y-','m-','c-'],kwargs)
@@ -426,7 +426,7 @@ class Campyon(object):
                 self.select = 'A() == "' + a.replace('"','\\"') + '"'
             elif o == '-G':
                 self.select = 'not (A() == "' + a.replace('"','\\"') + '")'
-            elif o == '-R':                
+            elif o == '-R':
                 self.reverseaxes = True
                 self.inmemory = True
             elif o == '-a':
@@ -436,8 +436,8 @@ class Campyon(object):
 
         if args:
             self.filenames = args
-                        
-        if not self.filenames:    
+
+        if not self.filenames:
             usage()
             sys.exit(2)
 
@@ -445,49 +445,49 @@ class Campyon(object):
             if not os.path.exists(filename):
                 print >>sys.stderr,"No such file: " + filename
                 sys.exit(2)
- 
-           
+
+
         if self.sort or self.sortsettings or self.prettyview or self.guiview:
             self.inmemory = True
 
-        
-            
-        self.memory = []    
+
+
+        self.memory = []
         self.sumdata = {}
         self.nostats = set()
         self.freq = {}
-        
-        
+
+
         if self.keep:
             print >>sys.stderr, "Fields to keep: ",  " ".join([ str(x) for x in self.keep])
         if self.delete:
             print >>sys.stderr, "Fields to delete: ",  " ".join([ str(x) for x in self.delete])
-        
+
         self.rowcount_in = 0
         self.rowcount_out = 0
-        
-        
-    def init(self, filename):       
+
+
+    def init(self, filename):
         f = codecs.open(filename,'r',self.encoding)
         for line in f:
-            if line.strip() and (not self.commentchar or line[:len(self.commentchar)] != self.commentchar):                    
+            if line.strip() and (not self.commentchar or line[:len(self.commentchar)] != self.commentchar):
                 if not self.delimiter:
                     if "\t" in line:
                         self.delimiter = "\t"
                         print >>sys.stderr,"Guessed delimiter: TAB"
-                    elif ";" in line:       
+                    elif ";" in line:
                         self.delimiter = ";"
                         print >>sys.stderr,"Guessed delimiter: SEMICOLON"
-                    elif ":" in line:       
+                    elif ":" in line:
                         self.delimiter = ":"
-                        print >>sys.stderr,"Guessed delimiter: COLON"                                                
-                    elif "," in line:       
+                        print >>sys.stderr,"Guessed delimiter: COLON"
+                    elif "," in line:
                         self.delimiter = ","
                         print >>sys.stderr,"Guessed delimiter: COMMA"
-                    elif " " in line:                        
-                        self.delimiter = " " 
+                    elif " " in line:
+                        self.delimiter = " "
                         print >>sys.stderr,"Guessed delimiter: SPACE"
-                                           
+
                 fields = line.strip().split(self.delimiter)
                 self.fieldcount = len(fields)
                 print >>sys.stderr,"Number of fields: ", self.fieldcount
@@ -495,38 +495,38 @@ class Campyon(object):
                     self.header = dict([ (x+1,y.strip()) for x,y in enumerate(fields) ])
                     for col, name in self.header.items():
                         print >>sys.stderr,"Column #"+str(col)+":", name.encode('utf-8')
-                break            
+                break
         f.close()
-        
-        
+
+
         if self.keepsettings: self.keep = self.parsecolumns(self.keepsettings)
         if self.deletesettings: self.delete = self.parsecolumns(self.deletesettings)
         if self.histsettings: self.hist = self.parsecolumns(self.histsettings)
         if self.highlightsettings: self.highlight = self.parsecolumns(self.highlightsettings)
         if self.sortsettings: self.sort = self.parsecolumns(self.sortsettings)
         if self.plotxsettings: self.x = self.parsecolumnindex(self.plotxsettings)
-        if self.plotysettings: self.y = self.parsecolumns(self.plotysettings)                   
-        
-    def __call__(self):        
-        self.memory = []    
+        if self.plotysettings: self.y = self.parsecolumns(self.plotysettings)
+
+    def __call__(self):
+        self.memory = []
         self.sumdata = {}
         self.nostats = set()
         self.freq = {}
         self.rowcount_in = 0
         self.rowcount_out = 0
         f_out = None
-        
+
         if self.outputfile and not self.overwriteinput:
             f_out = codecs.open(self.outputfile, 'w',self.encoding)
-                    
-        if not self.overwriteinput and not self.copysuffix:                    
+
+        if not self.overwriteinput and not self.copysuffix:
             self.init(self.filenames[0]) #initialise one, assume same column config for all!
 
         for filename in self.filenames:
 
-            if self.overwriteinput or self.copysuffix:                
+            if self.overwriteinput or self.copysuffix:
                 self.memory = []
-                self.nostats = set()                
+                self.nostats = set()
                 self.rowcount_in = 0
                 self.rowcount_out = 0
                 self.init(filename)
@@ -534,26 +534,26 @@ class Campyon(object):
                   f_out = codecs.open(filename+".tmp", 'w',self.encoding)
                 elif self.copysuffix:
                   f_out = codecs.open(filename + '.' + self.copysuffix, 'w',self.encoding)
-            
+
             for line, fields, linenum in self.process(filename):
-                if f_out:                                          
+                if f_out:
                     if self.numberlines: f_out.write(str(linenum) + self.delimiter)
                     f_out.write(line + "\n")
                 else:
                     if self.numberlines: print green(str(linenum)) + self.delimiter,
                     print line.encode(self.encoding)
-        
-            if self.overwriteinput or self.copysuffix:             
+
+            if self.overwriteinput or self.copysuffix:
                 if self.prettyview:
                     margin = 2
                     colsize = {}
-                    for line, fields, linenum in self.processmemory():                    
+                    for line, fields, linenum in self.processmemory():
                         for i,field in enumerate(fields):
                             if not i in colsize:
                                 colsize[i] = 0
                             if len(unicode(field))+margin > colsize[i]:
                                 colsize[i] = len(unicode(field))+margin
-                    for line, fields, linenum in self.processmemory():                                                        
+                    for line, fields, linenum in self.processmemory():
                         for field in fields:
                             spaces = " " * (colsize[i] - len(unicode(field)))
                             if f_out:
@@ -564,34 +564,34 @@ class Campyon(object):
                             f_out.write("\n")
                         else:
                             print
-                elif self.guiview: 
+                elif self.guiview:
                     v = CampyonViewer(self, filename)
                     gtk.main()
                     del v
-                    
-                                     
+
+
             if f_out and (self.overwriteinput or self.copysuffix):
-                if self.inmemory and not self.prettyview and not self.guiview:                    
-                    for line, fields, linenum in self.processmemory():                                          
+                if self.inmemory and not self.prettyview and not self.guiview:
+                    for line, fields, linenum in self.processmemory():
                         if self.numberlines: f_out.write(str(linenum) + self.delimiter)
-                        f_out.write(line + "\n")                           
+                        f_out.write(line + "\n")
                 f_out.close()
                 f_out = None
                 if self.overwriteinput:
                     os.rename(filename+".tmp",filename)
-                
-        if self.inmemory and not self.overwriteinput and not self.copysuffix:            
-            
+
+        if self.inmemory and not self.overwriteinput and not self.copysuffix:
+
             if self.prettyview:
                 margin = 2
                 colsize = {}
-                for line, fields, linenum in self.processmemory():                    
+                for line, fields, linenum in self.processmemory():
                     for i,field in enumerate(fields):
                         if not i in colsize:
                             colsize[i] = 0
                         if len(unicode(field))+margin > colsize[i]:
                             colsize[i] = len(unicode(field))+margin
-                for line, fields, linenum in self.processmemory():                                                        
+                for line, fields, linenum in self.processmemory():
                     for field in fields:
                         spaces = " " * (colsize[i] - len(unicode(field)))
                         if f_out:
@@ -602,120 +602,120 @@ class Campyon(object):
                         f_out.write("\n")
                     else:
                         print
-            elif self.guiview: 
+            elif self.guiview:
                 v = CampyonViewer(self, filename)
                 gtk.main()
                 del v
-            else:            
+            else:
                 for line, fields, linenum in self.processmemory():
-                    if f_out:                                          
+                    if f_out:
                         if self.numberlines: f_out.write(str(linenum) + self.delimiter)
                         f_out.write(line + "\n")
                     else:
                         if self.numberlines: print green(str(linenum)) + self.delimiter,
-                        print line.encode(self.encoding)            
-              
+                        print line.encode(self.encoding)
+
         if f_out:
-            f_out.close()        
-            
-        if self.DOSTATS:            
+            f_out.close()
+
+        if self.DOSTATS:
             self.printstats()
-            
+
         if self.hist:
             for fieldnum in sorted(self.freq):
                 print >>sys.stderr, "Histogram for column #" + str(fieldnum) + "\ttypes=" + str(self.types(fieldnum)) + "\ttokens=" + str(self.tokens(fieldnum)) + "\tttr=" +  str(self.ttr(fieldnum)) + "\tentropy=" + str(self.entropy(fieldnum))
                 print >>sys.stderr,"------------------------------------------------------------------------"
                 self.printhist(fieldnum)
-                
+
         if self.x and self.y:
             self.plot()
-            
-    def __iter__(self):            
-        self.memory = []    
+
+    def __iter__(self):
+        self.memory = []
         self.sumdata = {}
         self.nostats = set()
         self.freq = {}
         self.rowcount_in = 0
         self.rowcount_out = 0
-                
-        self.init(self.filenames[0]) #initialise one, assume same column config for all! 
-                    
-        for filename in self.filenames:        
+
+        self.init(self.filenames[0]) #initialise one, assume same column config for all!
+
+        for filename in self.filenames:
             for line, fields, linenum in self.process(filename):
                 yield line, fields, linenum
-                 
-    def __len__(self):        
+
+    def __len__(self):
         return self.rowcount_out
-        
-        
-        
-    def process(self, f):                                    
+
+
+
+    def process(self, f):
         if self.overwriteinput:
             self.rowcount_in = 0
-            self.rowcount_out = 0 
-        
-        if self.keep: 
+            self.rowcount_out = 0
+
+        if self.keep:
             default = 'delete'
-        else:        
-            default = 'keep'        
-            
+        else:
+            default = 'keep'
+
         headerfound = False
 
-        if isinstance(f, str) or isinstance(f, unicode):                           
+        if isinstance(f, str) or isinstance(f, unicode):
             f = codecs.open(f,'r',self.encoding)
 
-                      
-            
+
+
         for line in f:
             if not isinstance(line, unicode):
                 line = unicode(line, self.encoding)
             isheader = False
-            self.rowcount_in += 1            
-            
+            self.rowcount_in += 1
+
             if not line.strip() or (self.commentchar and line[:len(self.commentchar)] == self.commentchar):
                 self.rowcount_out += 1
                 if not self.inmemory:
                     yield line.strip(), [], self.rowcount_out
                 continue
-            
-            
-            
 
-                
+
+
+
+
             fields = line.strip().split(self.delimiter)
             if len(fields) != self.fieldcount:
-                raise CampyonError("Number of columns in line " + str(self.rowcount_in) + " deviates, expected " + str(self.fieldcount) + ", got " + str(len(fields))) 
-                
+                raise CampyonError("Number of columns in line " + str(self.rowcount_in) + " deviates, expected " + str(self.fieldcount) + ", got " + str(len(fields)))
+
             if self.DOHEADER and not headerfound:
                 headerfound = True
                 isheader = True
-    
-        
-            
+
+
+
             if self.select and not isheader:
                 c = lambda x: fields[self.parsecolumnindex(x)-1].strip()
                 C = lambda x: ConjunctionSelector(c, *x)
-                D = lambda x: DisjunctionSelector(c, *x)  
+                D = lambda x: DisjunctionSelector(c, *x)
                 r = lambda x,y: re.search(x,c(y))
                 A = lambda: D(range(1,len(fields)+1))
                 if not eval(self.select):
                     continue
-        
+
             self.rowcount_out += 1
-            
+
 
             if self.hist and not isheader:
                 for fieldnum in self.hist:
-                    if not fieldnum in self.freq:                
+                    if not fieldnum in self.freq:
                         self.freq[fieldnum] = {}
                     if not fields[fieldnum-1] in self.freq[fieldnum]:
                         self.freq[fieldnum][fields[fieldnum-1]] = 0
                     self.freq[fieldnum][fields[fieldnum-1]] += 1
-                
-            if self.DOSTATS and not isheader:                    
+
+            if self.DOSTATS and not isheader:
                 for i,field in enumerate(fields):
                     fieldnum = i+1
-                    if not fieldnum in self.nostats: 
+                    if not fieldnum in self.nostats:
                         if '.' in field:
                             try:
                                x = float(field)
@@ -729,34 +729,37 @@ class Campyon(object):
                             except:
                                self.nostats.add(fieldnum)
                                if fieldnum in self.sumdata: del self.sumdata[fieldnum]
-                               continue                        
-                     
+                               continue
+
                         if not fieldnum in self.sumdata:
                             self.sumdata[fieldnum] = 0
                         self.sumdata[fieldnum] += x
-                         
-                
-            
+
+
+
             newfields = []
             #k = [ x - 1 if x >= 0 else len(fields) + x for x in keep ]
             #d = [ x - 1 if x >= 0 else len(fields) + x for x in delete ]
             for i, field in enumerate(fields):
                 fieldnum = i+1
-                action = default 
+                action = default
                 if fieldnum in self.keep:
                     action = 'keep'
                 elif fieldnum in self.delete:
                     action = 'delete'
                 if fieldnum in self.highlight and not self.guiview:
-                    field = bold(red(field))                
+                    field = bold(red(field))
                 if self.numberfields:
                     if self.guiview:
                         field = str(fieldnum) + '=' + field
                     else:
                         field = magenta(str(fieldnum)) + '=' + field
-                else:                
+                else:
                     if field.isdigit() or field[0] == '-' and field[1:].isdigit():
-                        field = int(field)
+                        try:
+                            field = int(field)
+                        except:
+                            pass
                     else:
                         isfloat = True
                         try:
@@ -768,29 +771,29 @@ class Campyon(object):
 
                 if self.x == fieldnum and not isheader:
                     self.xs.append(field)
-                
+
                 if fieldnum in self.y and not isheader:
                     if not isinstance(field, float) and not isinstance(field,int):
-                        raise CampyonError("Can not plot non-numeric values: " + field) 
-                        
+                        raise CampyonError("Can not plot non-numeric values: " + field)
+
                     if not fieldnum in self.ys:
                         self.ys[fieldnum] = []
                     self.ys[fieldnum].append(field)
 
                 if action == 'keep':
                     newfields.append(field)
-                    
-            s = self.delimiter.join([ unicode(x) for x in newfields ])            
+
+            s = self.delimiter.join([ unicode(x) for x in newfields ])
             if self.inmemory:
                 if not isheader or self.reverseaxes:
                     self.memory.append( (newfields, self.rowcount_out) )
-            else:                
+            else:
                 yield s, newfields, self.rowcount_out
 
-            
+
         print >>sys.stderr,"Read " + str(self.rowcount_in) + " lines, outputted " + str(self.rowcount_out)
 
-    def processmemory(self):    
+    def processmemory(self):
         if self.sort:
            self.memory = sorted(self.memory, key=lambda x: tuple([ x[0][i-1] for i in self.sort ]), reverse=self.sortreverse)
         elif self.reverseaxes:
@@ -803,10 +806,10 @@ class Campyon(object):
                     tmp.append( ( newfields, i+1) )
                 self.memory = tmp
                 self.header = False
-            except KeyError:   
-                raise CampyonError("Unable to reverse axes, dimensions not square")                     
-                          
-        if self.header:    
+            except KeyError:
+                raise CampyonError("Unable to reverse axes, dimensions not square")
+
+        if self.header:
             s = self.delimiter.join( self.headerfields()  )
             yield s, self.headerfields(), 0
 
@@ -814,31 +817,31 @@ class Campyon(object):
             s = self.delimiter.join([ unicode(x) for x in fields])
             yield s, fields, linenum
 
-        
 
-        
-    def plot(self, show=True):        
+
+
+    def plot(self, show=True):
         barcolors = 'rgbymc'
-        
+
         #fig = matplotlib.pyplot.figure()
         matplotlib.pyplot.clf()
         if self.plotgrid:
             matplotlib.pyplot.grid(True)
         else:
-            matplotlib.pyplot.grid(False)            
+            matplotlib.pyplot.grid(False)
 
         if self.plottitle:
             matplotlib.pyplot.title(self.plottitle)
-            
+
         if all([ isinstance(x,float) or isinstance(x,int) for x in self.xs ]):
-            if self.plotylog:            
-                matplotlib.pyplot.set_yscale('log')            
-            
-            if self.x in self.header:            
-                matplotlib.pyplot.xlabel(self.header[self.x])            
-            if len(self.y) == 1 and self.y[0] in self.header:            
-                matplotlib.pyplot.ylabel(self.header[self.y[0]])            
-            
+            if self.plotylog:
+                matplotlib.pyplot.set_yscale('log')
+
+            if self.x in self.header:
+                matplotlib.pyplot.xlabel(self.header[self.x])
+            if len(self.y) == 1 and self.y[0] in self.header:
+                matplotlib.pyplot.ylabel(self.header[self.y[0]])
+
             if self.plotxlog:
                 matplotlib.pyplot.set_xscale('log')
 
@@ -847,77 +850,77 @@ class Campyon(object):
                 l.append(self.xs)
                 l.append(self.ys[field])
                 l.append(self.plotconf[i])
-                
-                            
+
+
             matplotlib.pyplot.plot(*l)
-        else:            
-           #do a horizontal barplot    
-           
-           if self.plotylog:            
+        else:
+           #do a horizontal barplot
+
+           if self.plotylog:
                 matplotlib.pyplot.set_xscale('log')
-           
-           if self.x in self.header:            
-                matplotlib.pyplot.ylabel(self.header[self.x])            
-           if len(self.y) == 1 and self.y[0] in self.header:            
-                matplotlib.pyplot.xlabel(self.header[self.y[0]])   
-            
-             
+
+           if self.x in self.header:
+                matplotlib.pyplot.ylabel(self.header[self.x])
+           if len(self.y) == 1 and self.y[0] in self.header:
+                matplotlib.pyplot.xlabel(self.header[self.y[0]])
+
+
            hbarheight = 0.2
            locations = numpy.arange(len(self.xs))
            for i, field in enumerate(self.y): #TODO support multiple graphs
                 matplotlib.pyplot.barh(locations ,  self.ys[field], align='center', color=barcolors[i])
            matplotlib.pyplot.yticks(locations+hbarheight/2., self.xs)
-           
-            
+
+
         if self.plotfile:
             print >>sys.stderr, "Saving plot in " + self.plotfile
             matplotlib.pyplot.savefig(self.plotfile, dpi=None, facecolor='w', edgecolor='w', orientation='portrait', papertype=None, format='png', transparent=False, bbox_inches=None, pad_inches=0.3)
         elif show:
             print >>sys.stderr, "Showing plot"
             matplotlib.pyplot.show()
-        
-    def headerfields(self):          
+
+    def headerfields(self):
         return [x[1] for x in sorted(self.header.items()) ]
-        
-    def printstats(self, out=sys.stderr):            
+
+    def printstats(self, out=sys.stderr):
         out.write("COLUMN\tSUM\tAVERAGE\n")
         for colnum, colname, s, average in self.stats():
-            if colname == str(colnum): 
+            if colname == str(colnum):
                 out.write(str(colnum) + "\t"+ str(s) + "\t" + str(average) + "\n")
             else:
-                out.write(colname.encode(self.encoding) + "\t"+ str(s) + "\t" + str(average) + "\n")                
-            
+                out.write(colname.encode(self.encoding) + "\t"+ str(s) + "\t" + str(average) + "\n")
+
     def stats(self):
         for i in sorted(self.sumdata):
             if self.header:
                 colname = self.header[i]
             else:
-                colname = str(i)   
-            
+                colname = str(i)
+
             yield i, colname, self.sumdata[i], self.sumdata[i] / float(self.rowcount_out)
-                         
-     
-    def printhist(self, columnindex, out=sys.stderr):         
+
+
+    def printhist(self, columnindex, out=sys.stderr):
         for i, (word, count, f) in enumerate(self.histdata(columnindex)):
             print >>sys.stderr, str(i+1) + ")\t" + word.encode(self.encoding) + "\t" + str(count) + "\t" + str(f * 100) + '%'
-        
-    def entropy(self, columnindex):        
+
+    def entropy(self, columnindex):
         return calcentropy(self.freq[columnindex])
-    
+
     def tokens(self, columnindex):
         return sum(self.freq[columnindex].values())
-        
+
     def types(self, columnindex):
         return len(self.freq[columnindex])
-    
+
     def ttr(self, columnindex):
         return self.types(columnindex) / float(self.tokens(columnindex))
-        
-    def histdata(self, columnindex):   
+
+    def histdata(self, columnindex):
         s = float(self.tokens(columnindex))
         for word, count in sorted(self.freq[columnindex].items(), key=lambda x: x[1] * -1):
             yield word, count, count / s
-    
+
     def indexbyname(self, colname):
         for i,key in self.header.items():
             if key == colname:
@@ -926,57 +929,57 @@ class Campyon(object):
 
 
 class ConjunctionSelector(object):
-    def __init__(self, c, *args):    
+    def __init__(self, c, *args):
         self.args = [ c(x) for x in args ]
 
     def __eq__(self, y):
         return all([ x == y for x in self.args ])
-    
+
     def __ne__(self, y):
-        return all([ x != y for x in self.args ])    
-    
+        return all([ x != y for x in self.args ])
+
     def __gt__(self, y):
         return all([ x > y for x in self.args ])
 
     def __lt__(self, y):
         return all([ x < y for x in self.args ])
-    
+
     def __ge__(self, y):
         return all([ x >= y for x in self.args ])
-    
+
     def __le__(self, y):
-        return all([ x <= y for x in self.args ])    
-    
+        return all([ x <= y for x in self.args ])
+
     def __contains__(self, y):
-        return all([ x in y for x in self.args ])    
-    
+        return all([ x in y for x in self.args ])
+
 class DisjunctionSelector(object):
     def __init__(self, c, *args):
-        self.args = [ c(x) for x in args ]    
-    
+        self.args = [ c(x) for x in args ]
+
     def __eq__(self, y):
         return any([ x == y for x in self.args ])
-    
+
     def __ne__(self, y):
-        return any([ x != y for x in self.args ])    
-    
+        return any([ x != y for x in self.args ])
+
     def __gt__(self, y):
         return any([ x > y for x in self.args ])
 
     def __lt__(self, y):
         return any([ x < y for x in self.args ])
-    
+
     def __ge__(self, y):
         return any([ x >= y for x in self.args ])
-    
+
     def __le__(self, y):
-        return any([ x <= y for x in self.args ])    
+        return any([ x <= y for x in self.args ])
 
     def __contains__(self, y):
-        return any([ x in y for x in self.args ])        
-    
+        return any([ x in y for x in self.args ])
 
-        
-if __name__ == "__main__":         
+
+
+if __name__ == "__main__":
     campyon = Campyon(*sys.argv[1:])
     campyon()
